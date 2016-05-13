@@ -42,9 +42,9 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
         }
     }
     for(int i = 0;i < num_apps;++i){
-        int r = rand() % num_apps;
-        rep_ar[i][r] = true;
-        repli[r] += 1;
+        int r = rand() % num_server;
+        rep_ar[r][i] = true;
+        repli[i] += 1;
     }
     int i;
 	for(i = 0;i < num_server;++i){
@@ -55,26 +55,29 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 		else{
 			r_u = rand() % num_user / 2;
 		}
-		int r_a = rand() % num_apps;
+		int r_a = rand() % num_apps / 2;
 		if(is_ranged){  // reserved for further modification
 			fprintf(s, "%d %d %d %d\n", server_comp , server_stor, r_u, r_a);
 		}
 		else{
 			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, r_u, r_a);
 		}
-		for (int j = 0;j < num_apps;++j) {
+		
+        for (int j = 0;j < num_apps;++j) {
             int r = rand() % num_apps;
             int t = apps[j]; 
             apps[j] = apps[r]; 
             apps[r] = t;
-    	}
-    	for(int j = 0;j < r_a;++j){
-    		fprintf(s, "%d ", apps[j]);
+        }
+        for(int j = 0;j < r_a;++j){
+            fprintf(s, "%d ", apps[j]);
             if(!rep_ar[i][apps[j]]){
-                repli[j] += 1;
-                rep_ar[i][j] = true;
+                // printf("XD\n");
+                repli[apps[j]] += 1;
+                rep_ar[i][apps[j]] = true;
             }
     	}
+        // printf("XDD\n");
         if(r_u == 0){
             fprintf(s, "\n");
         }
@@ -122,7 +125,7 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
         fprintf(a, "%d %d %d %d ", res[r], res[r], rand()%50+50, repli[i]);
         fprintf(a, "[ ");
         for(int j = 0;j < num_server;++j)
-            if(rep_ar[i][j])
+            if(rep_ar[j][i])
                 fprintf(a, "%d ", j);
         fprintf(a, "]\n");    
 
@@ -198,9 +201,9 @@ void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, boo
     // write to file
     FILE* f = fopen("../input/Edge.txt", "w");
     fprintf(f, "%d %d %d %d\n", num_server, num_link, num_user, num_apps);
-    for(int k = 1; k <= num_link;++k){
-        printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
-    }
+    // for(int k = 1; k <= num_link;++k){
+    //     printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
+    // }
     for(int k = 1; k <= num_link;++k){
     	fprintf(f, "%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
     }
