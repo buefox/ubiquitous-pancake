@@ -107,8 +107,7 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
         }
         //printf("%d\n", loc[i]);
         fprintf(u, "%d %d\n", loc[i], n);
-        // printf("%d %d\n", loc[i], n);
-        // scanf("%d", &n);
+        
         for(int k = 0;k < n;++k){
             fprintf(u, "%d ", apps[k]);
             // printf("%d ", apps[k]);
@@ -139,7 +138,7 @@ void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, boo
 	int nodei[num_link+1], nodej[num_link+1];
 	int weight[num_link+1];
 
-	// initialize adjcent matrix
+	// initialize 
 	for(nodeA = 0;nodeA < num_server+1;++nodeA){
 		for(nodeB = 0;nodeB < num_server+1;++nodeB){
 			adjcent[nodeA][nodeB] = false;
@@ -174,10 +173,7 @@ void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, boo
             weight[numEdges] = minw + rand() % (maxw - minw + 1);
         }
     }
-    for(int k = 1; k <= num_link;++k){
-        printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
-    }
-    printf("-----\n");
+    
     // add remaining edges
     while(numEdges <= num_link){
     	nodeA = rand() % num_server + 1;
@@ -198,10 +194,7 @@ void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, boo
             }
     	}
     }
-    // printf("edge from to weight\n");
-    // for(int k = 1;k <= num_link;++k){
-    // 	printf("  %d   %d   %d    %d\n", k-1, nodei[k]-1, nodej[k]-1, weight[k]);
-    // }
+
     // write to file
     FILE* f = fopen("../input/Edge.txt", "w");
     fprintf(f, "%d %d %d %d\n", num_server, num_link, num_user, num_apps);
@@ -246,7 +239,7 @@ int main(int args, char* argv[]){
 	num_apps = atoi(argv[4]);
 	server_comp = atoi(argv[8]);
 	server_stor = atoi(argv[9]);
-	// printf("%d %d\n", num_server, num_link);
+
 	// check valid input of num_server and num_link
 	if(num_link < (num_server - 1) || num_link > (num_server * (num_server - 1) / 2)){
 		printf("invalid input of m\n");
@@ -256,6 +249,6 @@ int main(int args, char* argv[]){
 
 	makeEdgeInput(num_server, num_link, num_user, num_apps, weighted, minw, maxw);
 	makeServerInput(num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
-	// printf("%d %d\n", num_server, num_link);
+
 
 }
