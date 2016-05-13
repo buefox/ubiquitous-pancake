@@ -10,23 +10,39 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
     fprintf(u, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
     fprintf(a, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
 
-    int users[num_user];
-    int loc[num_user];
-    int repli[num_apps];
-    bool rep_ar[num_server][num_apps]; 
-    int apps[num_apps];
+    // int users[num_user];
+    std::vector<int> users;
+    // int loc[num_user];
+    std::vector<int> loc;
+    // int repli[num_apps];
+    std::vector<int> repli;
+    // bool rep_ar[num_server][num_apps]; 
+    std::vector< std::vector<bool> > rep_ar;
+    // int apps[num_apps];
+    std::vector<int> apps;
     int res[3] = {1,2,4};
     std::vector< std::vector<int> > user_dis;
 
+    users.resize(num_user);
+    loc.resize(num_user);
+    apps.resize(num_apps);
+    repli.resize(num_apps);
     user_dis.resize(num_server);
+    rep_ar.resize(num_server);
+    for(int i = 0;i < num_server;++i){
+        rep_ar[i].resize(num_apps);
+    }
+
     for(int i = 0;i < num_user;++i){
     	users[i] = i;
         loc[i] = -1;
     }
+
     for(int i = 0;i < num_apps;++i){
     	apps[i] = i;
         repli[i] = 0;
     }
+
     srand(time(NULL));
     for (int i = 0;i < num_user;++i) {
             int r = rand() % num_user ;
@@ -40,16 +56,19 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
             apps[i] = apps[r]; 
             apps[r] = t;
     }
+
     for(int i = 0;i < num_server;++i){
         for(int j = 0;j < num_apps;++j){
             rep_ar[i][j] = false;
         }
     }
+
     for(int i = 0;i < num_apps;++i){
         int r = rand() % num_server;
         rep_ar[r][i] = true;
         repli[i] += 1;
     }
+
     for(int i = 0;i < num_user;++i){
         int r = rand() % num_server;
         user_dis[r].push_back(users[i]);
@@ -142,18 +161,30 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 }
 void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, bool weighted, int minw, int maxw){
 	// make a random connected graph with given node egde and weighted rand (if)
-	int maxEdges, nodeA, nodeB, numEdges, temp;
-	int permute[num_server+1];
-	bool adjcent[num_server+1][num_server+1];
-	int nodei[num_link+1], nodej[num_link+1];
-	int weight[num_link+1];
+    int maxEdges, nodeA, nodeB, numEdges, temp;
+    // int permute[num_server+1];
+    std::vector<int> permute;
+    // bool adjcent[num_server+1][num_server+1];
+    std::vector< std::vector<bool> > adjcent;
+    // int nodei[num_link+1], nodej[num_link+1];
+    std::vector<int> nodei;
+    std::vector<int> nodej;
+    // int weight[num_link+1];
+    std::vector<int> weight;
 
-	// initialize 
-	for(nodeA = 0;nodeA < num_server+1;++nodeA){
-		for(nodeB = 0;nodeB < num_server+1;++nodeB){
-			adjcent[nodeA][nodeB] = false;
-		}
-	}
+    // initialize 
+    permute.resize(num_server+1);
+    adjcent.resize(num_server+1);
+    nodei.resize(num_link+1);
+    nodej.resize(num_link+1);
+    weight.resize(num_link+1);
+    for(nodeA = 0;nodeA < num_server+1;++nodeA){
+        adjcent[nodeA].resize(num_server+1);
+        for(nodeB = 0;nodeB < num_server+1;++nodeB){
+            adjcent[nodeA][nodeB] = false;
+        }
+    }
+	// printf("!!!\n");
 
 	for(int i = 0;i < num_server+1;++i){
 		permute[i] = i;
@@ -249,7 +280,7 @@ int main(int args, char* argv[]){
 	num_apps = atoi(argv[4]);
 	server_comp = atoi(argv[8]);
 	server_stor = atoi(argv[9]);
-
+    printf("!\n");
 	// check valid input of num_server and num_link
 	if(num_link < (num_server - 1) || num_link > (num_server * (num_server - 1) / 2)){
 		printf("invalid input of m\n");
@@ -258,6 +289,7 @@ int main(int args, char* argv[]){
 	srand(time(NULL));
 
 	makeEdgeInput(num_server, num_link, num_user, num_apps, weighted, minw, maxw);
+    printf("!!\n");
 	makeServerInput(num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
 
 
