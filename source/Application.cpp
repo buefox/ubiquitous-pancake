@@ -2,10 +2,10 @@
 #include <algorithm>
 #include "Application.h"
 
-App::App( int i, int c, int m, int b, int num_s, int num_r, bool reps[] ) {
+App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[] ) {
 	index = i;
 	comp = c;
-	stor = m;
+	stor = s;
 	band = b;
 	num_servers = num_s;
 	num_replicas = num_r;

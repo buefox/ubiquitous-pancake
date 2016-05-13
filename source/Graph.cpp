@@ -89,16 +89,21 @@ void Graph::readAll( const char *file_apps, const char *file_users, const char *
 	readGraph( file_edges, file_servers );
 }
 void Graph::readApps( const char *name ) {
-	int i, s, e, u, a, c, m, b, g;
+	int i, s, e, u, a, c, m, b, r;
 	FILE *fptr = fopen( name, "r" );
 	if ( fptr ) {
 		fscanf( fptr, "%d %d %d %d", &s, &e, &u, &a ); setTotalApps( a );
 		for ( i=0; i<total_apps; i++ ) {
-			fscanf( fptr, "%d %d %d %d", &c, &m, &b, &g );
-			App app( i, c, m, b, g, s );
+			bool reps[a] = {false};
+			fscanf( fptr, "%d %d %d %d", &c, &m, &b, &r );
+			for(int j = 0;j < r;++j){
+				fscanf(fptr, "%d", &n);
+				reps[n] = true
+			}
+			App app( i, c, m, b, s, r, reps);
 			setApp( i, app );
 		}
-		fclose( fptr );
+		fclose( fptr ); 
 	}
 	else fprintf( stderr, "[ERROR] Can not open application file: %s\n", name );
 }

@@ -11,7 +11,7 @@ class App {
 		int getComp();
 		int getStor();
 		int getBand();
-		int getImageSize();
+		//int getImageSize();
 		int getNumServers();
 		int getNumReplicas();
 		bool getReplica( int );
@@ -21,7 +21,7 @@ class App {
 		void setComp( int );
 		void setStor( int );
 		void setBand( int );
-		void setImageSize( int );
+		//void setImageSize( int );
 		void setNumServers( int );
 		void setNumReplicas( int );
 		void setReplica( int, bool );
@@ -34,7 +34,7 @@ class App {
 
 		int num_servers;
 		int num_replicas;
-		std::vector<bool> replicas;
+		std::vector<bool> replicas; //legth = num_servers
 };
 
 #endif

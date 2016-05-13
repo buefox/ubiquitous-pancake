@@ -51,17 +51,17 @@ class Server {
 		// void setReplica( int, Replica );
 
 	private:
-		int index;
-		int comp;
-		int stor;
+		int index; // Server number
+		int comp;  // CPU
+		int stor;  // Storage
 		
 		int total_servers;
-		int num_connections;
-		std::vector<bool> connections;
+		int num_connections; // labeling total number of servers that connect to this server
+		std::vector<bool> connections;  // laberling which servers are connected th this server
 		
 		int total_edges;
-		int num_edges;
-		std::vector<bool> edges;
+		int num_edges;  // total links
+		std::vector<bool> edges;  // labeling which links are connected to this server
 		
 		int total_users;
 		int num_users;

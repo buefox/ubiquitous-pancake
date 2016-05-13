@@ -12,6 +12,7 @@ int main( int argc, char *argv[] ) {
 		G.usersAction();
 		G.showUsers();
 	}
+	G.showGraph();
 	//G.showDistribution();
 	return EXIT_SUCCESS;
 }
