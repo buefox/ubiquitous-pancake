@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <vector>
 void makeServerInput(int num_server, int num_link, int num_user, int num_apps, bool is_ranged, int server_comp, int server_stor){
 	FILE* s = fopen("../input/Server.txt", "w");
     FILE* u = fopen("../input/Users.txt", "w");
@@ -8,13 +9,16 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
     fprintf(s, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
     fprintf(u, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
     fprintf(a, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+
     int users[num_user];
     int loc[num_user];
     int repli[num_apps];
     bool rep_ar[num_server][num_apps]; 
     int apps[num_apps];
     int res[3] = {1,2,4};
-    int prev = 0, z = num_user;
+    std::vector< std::vector<int> > user_dis;
+
+    user_dis.resize(num_server);
     for(int i = 0;i < num_user;++i){
     	users[i] = i;
         loc[i] = -1;
@@ -46,21 +50,25 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
         rep_ar[r][i] = true;
         repli[i] += 1;
     }
+    for(int i = 0;i < num_user;++i){
+        int r = rand() % num_server;
+        user_dis[r].push_back(users[i]);
+        loc[i] = r;
+    }
     int i;
+    // for(int i = 0;i < num_server;++i){
+    //     for(int j = 0;j < user_dis[i].size();++j)
+    //         printf("%d ", user_dis[i][j]);
+    //     printf("\n");
+    // }
+    // scanf("%d", &i);
 	for(i = 0;i < num_server;++i){
-		int r_u;
-		if(i == num_server-1){
-			r_u = num_user;
-		}
-		else{
-			r_u = rand() % num_user / 2;
-		}
-		int r_a = rand() % num_apps / 2;
+		int r_a = rand() % num_apps;
 		if(is_ranged){  // reserved for further modification
-			fprintf(s, "%d %d %d %d\n", server_comp , server_stor, r_u, r_a);
+			fprintf(s, "%d %d %d %d\n", server_comp , server_stor, (int)user_dis[i].size(), r_a);
 		}
 		else{
-			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, r_u, r_a);
+			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, (int)user_dis[i].size(), r_a);
 		}
 		
         for (int j = 0;j < num_apps;++j) {
@@ -69,34 +77,33 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
             apps[j] = apps[r]; 
             apps[r] = t;
         }
+        if(r_a == 0){
+            fprintf(s, "\n");
+        }
         for(int j = 0;j < r_a;++j){
             fprintf(s, "%d ", apps[j]);
             if(!rep_ar[i][apps[j]]){
-                // printf("XD\n");
                 repli[apps[j]] += 1;
                 rep_ar[i][apps[j]] = true;
             }
-    	}
-        // printf("XDD\n");
-        if(r_u == 0){
+            if(j == r_a-1){ 
+               fprintf(s, "\n");
+            }
+        }
+        if((int)user_dis[i].size() == 0){
             fprintf(s, "\n");
         }
 
-    	fprintf(s, "\n");
-    	for(int j = prev;j < prev+r_u;++j){
-            int tem = users[j];
-            loc[tem] = i;
-    		fprintf(s, "%d ", users[j]);
-            if(j == prev+r_u-1)
+    	for(int j = 0;j < (int)user_dis[i].size();++j){
+    		fprintf(s, "%d ", user_dis[i][j]);
+            if(j == (int)user_dis[i].size()-1)
                 fprintf(s, "\n\n");
-        }       
-        prev += r_u;
-        num_user -= r_u;
+        }
 	}
     fprintf(s, "[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[APP_INDEX]\n[USER_INDEX]\n");
 	fclose(s);
 
-    for(i = 0;i < z;++i){
+    for(i = 0;i < num_user;++i){
         int n = 0;
         while(n == 0){
             n = rand() % num_apps;
