@@ -2,251 +2,274 @@
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
+typedef struct
+{
+	int stor, comp, bandwidth, repli;
+}Apps;
+typedef struct 
+{
+	int stor, comp;
+}Servers;
 void makeServerInput(int num_server, int num_link, int num_user, int num_apps, bool is_ranged, int server_comp, int server_stor){
-	FILE* s = fopen("../input/Server.txt", "w");
-    FILE* u = fopen("../input/Users.txt", "w");
-    FILE* a = fopen("../input/Applications.txt", "w");
-    fprintf(s, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
-    fprintf(u, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
-    fprintf(a, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+	FILE* s = fopen("../input/Servers.txt", "w");
+	FILE* u = fopen("../input/Users.txt", "w");
+	FILE* a = fopen("../input/Applications.txt", "w");
+	fprintf(s, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+	fprintf(u, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+	fprintf(a, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+  
+	std::vector<int> users;
+	std::vector<int> apps;
+	std::vector<int> loc; // user location
+	std::vector< std::vector<bool> > app_dis;
+	int res[3] = {1,2,4}; // tend to change
+	std::vector< std::vector<int> > user_dis;
+	std::vector<Apps> applications;
+	std::vector<Servers> servers;
 
-    // int users[num_user];
-    std::vector<int> users;
-    // int loc[num_user];
-    std::vector<int> loc;
-    // int repli[num_apps];
-    std::vector<int> repli;
-    // bool rep_ar[num_server][num_apps]; 
-    std::vector< std::vector<bool> > rep_ar;
-    // int apps[num_apps];
-    std::vector<int> apps;
-    int res[3] = {1,2,4};
-    std::vector< std::vector<int> > user_dis;
+	users.resize(num_user);
+	loc.resize(num_user);
+	apps.resize(num_apps);
+	user_dis.resize(num_server);
+	app_dis.resize(num_server);
+	applications.resize(num_apps);
+	servers.resize(num_server);
 
-    users.resize(num_user);
-    loc.resize(num_user);
-    apps.resize(num_apps);
-    repli.resize(num_apps);
-    user_dis.resize(num_server);
-    rep_ar.resize(num_server);
-    for(int i = 0;i < num_server;++i){
-        rep_ar[i].resize(num_apps);
-    }
-
-    for(int i = 0;i < num_user;++i){
-    	users[i] = i;
-        loc[i] = -1;
-    }
-
-    for(int i = 0;i < num_apps;++i){
-    	apps[i] = i;
-        repli[i] = 0;
-    }
-
-    srand(time(NULL));
-    for (int i = 0;i < num_user;++i) {
-            int r = rand() % num_user ;
-            int t = users[i]; 
-            users[i] = users[r]; 
-            users[r] = t;
-    }
-    for (int i = 0;i < num_apps;++i) {
-            int r = rand() % num_apps;
-            int t = apps[i]; 
-            apps[i] = apps[r]; 
-            apps[r] = t;
-    }
-
-    for(int i = 0;i < num_server;++i){
-        for(int j = 0;j < num_apps;++j){
-            rep_ar[i][j] = false;
-        }
-    }
-
-    for(int i = 0;i < num_apps;++i){
-        int r = rand() % num_server;
-        rep_ar[r][i] = true;
-        repli[i] += 1;
-    }
-
-    for(int i = 0;i < num_user;++i){
-        int r = rand() % num_server;
-        user_dis[r].push_back(users[i]);
-        loc[i] = r;
-    }
-    int i;
-    // for(int i = 0;i < num_server;++i){
-    //     for(int j = 0;j < user_dis[i].size();++j)
-    //         printf("%d ", user_dis[i][j]);
-    //     printf("\n");
-    // }
-    // scanf("%d", &i);
-	for(i = 0;i < num_server;++i){
-		int r_a = rand() % num_apps;
-		if(is_ranged){  // reserved for further modification
-			fprintf(s, "%d %d %d %d\n", server_comp , server_stor, (int)user_dis[i].size(), r_a);
+	for(int i = 0;i < num_server;++i){
+		app_dis[i].resize(num_apps);
+		servers[i].stor = server_stor;
+		servers[i].comp = server_comp;
+	}
+	for(int i = 0;i < num_server;++i){
+		for(int j = 0;j < num_apps;++j){
+			app_dis[i][j] = false;
 		}
-		else{
-			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, (int)user_dis[i].size(), r_a);
+	}
+
+	for(int i = 0;i < num_user;++i){
+		users[i] = i;
+		loc[i] = -1;
+	}
+
+	for(int i = 0;i < num_apps;++i){
+		apps[i] = i;
+		applications[i].stor = res[rand()%3];
+		applications[i].comp = res[rand()%3];
+		applications[i].bandwidth = rand()%50+50;
+		applications[i].repli = 0;
+	}
+
+	srand(time(NULL));
+	for (int i = 0;i < num_user;++i) {
+			int r = rand() % num_user ;
+			int t = users[i]; 
+			users[i] = users[r]; 
+			users[r] = t;
+	}
+	for (int i = 0;i < num_apps;++i) {
+			int r = rand() % num_apps;
+			int t = apps[i]; 
+			apps[i] = apps[r]; 
+			apps[r] = t;
+	}
+
+	// put 1 copy of each app to random server.
+	for(int i = 0;i < num_apps;++i){
+		while(1){
+			int r = rand() % num_server;
+			if(servers[r].stor >= applications[i].stor && servers[r].comp >= applications[i].comp){
+				app_dis[r][i] = true;
+				applications[i].repli += 1;
+				servers[r].stor -= applications[i].stor;
+				servers[r].comp -= applications[i].comp;
+				break;
+			}
+		}
+	}
+
+	for(int i = 0;i < num_user;++i){
+		int r = rand() % num_server;
+		user_dis[r].push_back(users[i]);
+		loc[i] = r;
+	}
+	int i;
+
+	for(i = 0;i < num_server;++i){
+		
+		for (int j = 0;j < num_apps;++j) {
+			int r = rand() % num_apps;
+			int t = apps[j]; 
+			apps[j] = apps[r]; 
+			apps[r] = t;
 		}
 		
-        for (int j = 0;j < num_apps;++j) {
-            int r = rand() % num_apps;
-            int t = apps[j]; 
-            apps[j] = apps[r]; 
-            apps[r] = t;
-        }
-        if(r_a == 0){
-            fprintf(s, "\n");
-        }
-        for(int j = 0;j < r_a;++j){
-            fprintf(s, "%d ", apps[j]);
-            if(!rep_ar[i][apps[j]]){
-                repli[apps[j]] += 1;
-                rep_ar[i][apps[j]] = true;
-            }
-            if(j == r_a-1){ 
-               fprintf(s, "\n");
-            }
-        }
-        if((int)user_dis[i].size() == 0){
-            fprintf(s, "\n");
-        }
+		// need consider the comp , storage and power of the server 
+		for(int j = 0;j < num_apps;++j){
+			int r = rand() % 2;
+			if(r == 0) continue;
+			if(!app_dis[i][apps[j]] && servers[i].comp >= applications[apps[j]].comp && servers[i].stor >= applications[apps[j]].stor){
+				applications[apps[j]].repli += 1;
+				app_dis[i][apps[j]] = true;
+				servers[i].comp -= applications[apps[j]].comp;
+				servers[i].stor -= applications[apps[j]].stor;
+			}
+		}
 
-    	for(int j = 0;j < (int)user_dis[i].size();++j){
-    		fprintf(s, "%d ", user_dis[i][j]);
-            if(j == (int)user_dis[i].size()-1)
-                fprintf(s, "\n\n");
-        }
+		int r_a = 0;
+		for(int j = 0;j < num_apps;++j){
+			if(app_dis[i][j])
+				r_a++;
+		}
+		if(is_ranged){  // reserved for further modification
+			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, r_a, (int)user_dis[i].size());
+		}
+		else{
+			fprintf(s, "%d %d %d %d\n", server_comp, server_stor, r_a, (int)user_dis[i].size());
+		}
+		for(int j = 0;j < num_apps;++j){
+			if(app_dis[i][j])
+				fprintf(s, "%d ", j);
+		}
+		fprintf(s, "\n");
+
+		// if((int)user_dis[i].size() == 0){
+		// 	fprintf(s, "\n");
+		// }
+
+		for(int j = 0;j < (int)user_dis[i].size();++j){
+			fprintf(s, "%d ", user_dis[i][j]);
+		}
+		fprintf(s, "\n\n");
 	}
-    fprintf(s, "[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[APP_INDEX]\n[USER_INDEX]\n");
+	fprintf(s, "\n[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [USER] [APP]\n[APP_INDEX]\n[USER_INDEX]\n");
 	fclose(s);
 
-    for(i = 0;i < num_user;++i){
-        int n = 0;
-        while(n == 0){
-            n = rand() % num_apps;
-        }
-        //printf("%d\n", n);
-        for(int j = 1;j < num_apps;++j) {
-            int r = rand() % num_apps;
-            int t = apps[j]; 
-            apps[j] = apps[r]; 
-            apps[r] = t;
-        }
-        //printf("%d\n", loc[i]);
-        fprintf(u, "%d %d\n", loc[i], n);
-        
-        for(int k = 0;k < n;++k){
-            fprintf(u, "%d ", apps[k]);
-            // printf("%d ", apps[k]);
-        }
-        fprintf(u, "\n\n");
-    }
+	for(i = 0;i < num_user;++i){
+		int n = 0;
+		while(n == 0){
+			n = rand() % num_apps;
+		}
+		//printf("%d\n", n);
+		for(int j = 0;j < num_apps;++j) {
+			int r = rand() % num_apps;
+			int t = apps[j]; 
+			apps[j] = apps[r]; 
+			apps[r] = t;
+		}
+		//printf("%d\n", loc[i]);
+		fprintf(u, "%d %d\n", loc[i], n);
+		
+		for(int k = 0;k < n;++k){
+			fprintf(u, "%d ", apps[k]);
+			// printf("%d ", apps[k]);
+		}
+		fprintf(u, "\n\n");
+	}
 
-    fprintf(u, "[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[LOCATION] [NUM_APPS]\n[APP_INDEX]\n");
-    fclose(u);
-    for(int i = 0;i < num_apps;++i){
-        int r = rand() % 3;
-        fprintf(a, "%d %d %d %d ", res[r], res[r], rand()%50+50, repli[i]);
-        fprintf(a, "[ ");
-        for(int j = 0;j < num_server;++j)
-            if(rep_ar[j][i])
-                fprintf(a, "%d ", j);
-        fprintf(a, "]\n");    
+	fprintf(u, "[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[LOCATION] [NUM_APPS]\n[APP_INDEX]\n");
+	fclose(u);
+	for(int i = 0;i < num_apps;++i){
+		fprintf(a, "%d %d %d %d ", applications[i].comp, applications[i].stor, applications[i].bandwidth, applications[i].repli);
+		// rand()%50+50 means the bandwidth req of app is now 50-100, tend to chage
+		// fprintf(a, "[ ");
+		for(int j = 0;j < num_server;++j)
+			if(app_dis[j][i])
+				fprintf(a, "%d ", j);
+		// fprintf(a, "]\n");  
+		fprintf(a, "\n");  
 
-    }
+	}
 
-    fprintf(a, "\n[TOTAL_SERVERS] [TOTAL_EDGES] [TOTAL_USERS] [TOTAL_APPS]\n[COMP_REQ] [MEMO_REQ] [BAND_REQ] [NUM_REPLICA] [ARR_EXIST_SERVER]\n");
+	fprintf(a, "\n[TOTAL_SERVERS] [TOTAL_EDGES] [TOTAL_USERS] [TOTAL_APPS]\n[COMP_REQ] [MEMO_REQ] [BAND_REQ] [NUM_REPLICA] [ARR_EXIST_SERVER]\n");
 }
 void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, bool weighted, int minw, int maxw){
 	// make a random connected graph with given node egde and weighted rand (if)
-    int maxEdges, nodeA, nodeB, numEdges, temp;
-    // int permute[num_server+1];
-    std::vector<int> permute;
-    // bool adjcent[num_server+1][num_server+1];
-    std::vector< std::vector<bool> > adjcent;
-    // int nodei[num_link+1], nodej[num_link+1];
-    std::vector<int> nodei;
-    std::vector<int> nodej;
-    // int weight[num_link+1];
-    std::vector<int> weight;
+	int maxEdges, nodeA, nodeB, numEdges, temp;
+	// int permute[num_server+1];
+	std::vector<int> permute;
+	// bool adjcent[num_server+1][num_server+1];
+	std::vector< std::vector<bool> > adjcent;
+	// int nodei[num_link+1], nodej[num_link+1];
+	std::vector<int> nodei;
+	std::vector<int> nodej;
+	// int weight[num_link+1];
+	std::vector<int> weight;
 
-    // initialize 
-    permute.resize(num_server+1);
-    adjcent.resize(num_server+1);
-    nodei.resize(num_link+1);
-    nodej.resize(num_link+1);
-    weight.resize(num_link+1);
-    for(nodeA = 0;nodeA < num_server+1;++nodeA){
-        adjcent[nodeA].resize(num_server+1);
-        for(nodeB = 0;nodeB < num_server+1;++nodeB){
-            adjcent[nodeA][nodeB] = false;
-        }
-    }
+	// initialize 
+	permute.resize(num_server+1);
+	adjcent.resize(num_server+1);
+	nodei.resize(num_link+1);
+	nodej.resize(num_link+1);
+	weight.resize(num_link+1);
+	for(nodeA = 0;nodeA < num_server+1;++nodeA){
+		adjcent[nodeA].resize(num_server+1);
+		for(nodeB = 0;nodeB < num_server+1;++nodeB){
+			adjcent[nodeA][nodeB] = false;
+		}
+	}
 	// printf("!!!\n");
 
 	for(int i = 0;i < num_server+1;++i){
 		permute[i] = i;
-    }
-    for (int i = 1;i < num_server+1;++i) {
-            int r = rand() % num_server + 1;
-            int t = permute[i]; 
-            permute[i] = permute[r]; 
-            permute[r] = t;
-    }
-    for(int k = 0;k < num_link+1;++k){
-        nodei[k] = -1;
-        nodej[k] = -1;
+	}
+	for (int i = 1;i < num_server+1;++i) {
+			int r = rand() % num_server + 1;
+			int t = permute[i]; 
+			permute[i] = permute[r]; 
+			permute[r] = t;
+	}
+	for(int k = 0;k < num_link+1;++k){
+		nodei[k] = -1;
+		nodej[k] = -1;
 		weight[k] = -1;
-    }
-    numEdges = 0;
+	}
+	numEdges = 0;
 	// generate a random spanning tree by the greedy method
-    for(nodeA = 2;nodeA <= num_server;++nodeA){
-    	numEdges++;
-        nodeB = rand() % (nodeA - 1) + 1;
+	for(nodeA = 2;nodeA <= num_server;++nodeA){
+		numEdges++;
+		nodeB = rand() % (nodeA - 1) + 1;
 
-        nodei[numEdges] = permute[nodeA];
-        nodej[numEdges] = permute[nodeB];
-        adjcent[permute[nodeA]][permute[nodeB]] = true;
-        adjcent[permute[nodeB]][permute[nodeA]] = true;
-        if(weighted){
-            weight[numEdges] = minw + rand() % (maxw - minw + 1);
-        }
-    }
-    
-    // add remaining edges
-    while(numEdges <= num_link){
-    	nodeA = rand() % num_server + 1;
-    	nodeB = rand() % num_server + 1;
-    	if(nodeA == nodeB) continue;
-    	if(nodeA > nodeB){
-    		temp = nodeA;
-    		nodeA = nodeB;
-    		nodeB = temp;
-    	}
-    	if(!(adjcent[nodeA][nodeB])){
-    		numEdges++;
-            nodei[numEdges] = nodeA;
-            nodej[numEdges] = nodeB;
-            adjcent[nodeA][nodeB] = true;
-            if(weighted){
-                weight[numEdges] = minw + rand() % (maxw - minw + 1);
-            }
-    	}
-    }
+		nodei[numEdges] = permute[nodeA];
+		nodej[numEdges] = permute[nodeB];
+		adjcent[permute[nodeA]][permute[nodeB]] = true;
+		adjcent[permute[nodeB]][permute[nodeA]] = true;
+		if(weighted){
+			weight[numEdges] = minw + rand() % (maxw - minw + 1);
+		}
+	}
+	
+	// add remaining edges
+	while(numEdges <= num_link){
+		nodeA = rand() % num_server + 1;
+		nodeB = rand() % num_server + 1;
+		if(nodeA == nodeB) continue;
+		if(nodeA > nodeB){
+			temp = nodeA;
+			nodeA = nodeB;
+			nodeB = temp;
+		}
+		if(!(adjcent[nodeA][nodeB])){
+			numEdges++;
+			nodei[numEdges] = nodeA;
+			nodej[numEdges] = nodeB;
+			adjcent[nodeA][nodeB] = true;
+			if(weighted){
+				weight[numEdges] = minw + rand() % (maxw - minw + 1);
+			}
+		}
+	}
 
-    // write to file
-    FILE* f = fopen("../input/Edge.txt", "w");
-    fprintf(f, "%d %d %d %d\n", num_server, num_link, num_user, num_apps);
-    // for(int k = 1; k <= num_link;++k){
-    //     printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
-    // }
-    for(int k = 1; k <= num_link;++k){
-    	fprintf(f, "%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
-    }
-    fprintf(f, "\n[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[BANDWIDTH] [NODEA] [NODEB]\n");
-    fclose(f);
+	// write to file
+	FILE* f = fopen("../input/Edges.txt", "w");
+	fprintf(f, "%d %d %d %d\n", num_server, num_link, num_user, num_apps);
+	// for(int k = 1; k <= num_link;++k){
+	//     printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
+	// }
+	for(int k = 1; k <= num_link;++k){
+		fprintf(f, "%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
+	}
+	fprintf(f, "\n[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[BANDWIDTH] [NODEA] [NODEB]\n");
+	fclose(f);
 }
 int main(int args, char* argv[]){
 	// usage ./inputGenerator num_server num_link num_user num_apps is_weighted \
@@ -280,16 +303,22 @@ int main(int args, char* argv[]){
 	num_apps = atoi(argv[4]);
 	server_comp = atoi(argv[8]);
 	server_stor = atoi(argv[9]);
-    printf("!\n");
+	// printf("!\n");
 	// check valid input of num_server and num_link
-	if(num_link < (num_server - 1) || num_link > (num_server * (num_server - 1) / 2)){
-		printf("invalid input of m\n");
+	if(num_link < (num_server - 1)){
+		printf("%d %d\n", num_server, num_link);
+		printf("invalid input of num_link\n");
+		return -1;
+	}
+	if((long long)num_link > (long long)((long long)num_server * ((long long)num_server - 1) / 2)){
+		printf("!%d %d\n", num_server, num_link);
+		printf("invalid input of num_link\n");
 		return -1;
 	}
 	srand(time(NULL));
 
 	makeEdgeInput(num_server, num_link, num_user, num_apps, weighted, minw, maxw);
-    printf("!!\n");
+	// printf("!!\n");
 	makeServerInput(num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
 
 
