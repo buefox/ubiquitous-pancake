@@ -89,18 +89,27 @@ void Graph::readAll( const char *file_apps, const char *file_users, const char *
 	readGraph( file_edges, file_servers );
 }
 void Graph::readApps( const char *name ) {
-	int i, s, e, u, a, c, m, b, r;
+	int i, num_server, num_link, num_user, num_apps, comp, stor, bandwidth, num_replicas, n;
 	FILE *fptr = fopen( name, "r" );
 	if ( fptr ) {
-		fscanf( fptr, "%d %d %d %d", &s, &e, &u, &a ); setTotalApps( a );
-		for ( i=0; i<total_apps; i++ ) {
-			bool reps[a] = {false};
-			fscanf( fptr, "%d %d %d %d", &c, &m, &b, &r );
-			for(int j = 0;j < r;++j){
-				fscanf(fptr, "%d", &n);
-				reps[n] = true
+		fscanf( fptr, "%d %d %d %d", &num_server, &num_link, &num_user, &num_apps );
+		setTotalApps( num_apps );
+		total_apps = num_apps;
+		for (i = 0;i < num_apps;i++) {
+			bool reps[num_server];
+			for(int j = 0;j < num_server;++j){
+				reps[j] = false;
 			}
-			App app( i, c, m, b, s, r, reps);
+			fscanf( fptr, "%d %d %d %d", &comp, &stor, &bandwidth, &num_replicas );
+			char temp;
+			fscanf(fptr, "%c", &temp);
+			for(int j = 0;j < num_replicas;++j){
+				fscanf(fptr, "%d", &n);
+				reps[n] = true;
+			}
+			fscanf(fptr, "%c", &temp);
+
+			App app( i, comp, stor, bandwidth, num_server, num_replicas, reps);
 			setApp( i, app );
 		}
 		fclose( fptr ); 
@@ -108,19 +117,21 @@ void Graph::readApps( const char *name ) {
 	else fprintf( stderr, "[ERROR] Can not open application file: %s\n", name );
 }
 void Graph::readUsers( const char *name ) {
-	int i, j, s, e, u, a, l, n, x;
+	int i, j, num_server, num_link, num_user, num_apps, location, n, x;
 	FILE *fptr = fopen( name, "r" );
 	if ( fptr ) {
-		fscanf( fptr, "%d %d %d %d", &s, &e, &u, &a ); setTotalUsers( u );
-		for ( i=0; i<total_users; i++ ) {
-			fscanf( fptr, "%d %d", &l, &n );
-			bool app[a];
-			for ( j=0; j<a; j++ ) app[j] = false;
-			for ( j=0; j<n; j++ ) {
+		fscanf( fptr, "%d %d %d %d", &num_server, &num_link, &num_user, &num_apps ); 
+		setTotalUsers( num_user );
+		total_users = num_user;
+		for (i = 0;i < num_user;i++) {
+			fscanf( fptr, "%d %d", &location, &n );
+			bool app[num_apps];
+			for (j = 0;j < num_apps;j++) app[j] = false;
+			for (j = 0;j < n;j++) {
 				fscanf( fptr, "%d", &x );
-				app[x] = 1;
+				app[x] = true;
 			}
-			User user( i, l, a, app );
+			User user( i, location, num_apps, app );
 			setUser( i, user );
 		}
 	}
@@ -132,41 +143,58 @@ void Graph::readGraph( const char *file_edges, const char *file_servers ) {
 	readServers( file_servers );
 }
 void Graph::readEdges( const char *name ) {
-	int i, s, e, u, a, b, r, d;
-	FILE *fptr = fopen( name, "r" );
-	if ( fptr ) {
-		fscanf( fptr, "%d %d %d %d", &s, &e, &u, &a ); setTotalEdges( e );
-		for ( i=0; i<total_edges; i++ ) {
-			fscanf( fptr, "%d %d %d", &b, &r, &d );
-			Edge edge( i, b, r, d );
-			setEdge( i, edge );
+	int i, num_server, num_link, num_user, num_apps, bandwidth, nodei, nodej; // nodei, nodej are the two nodes connected by the link (edge)
+	FILE *fptr = fopen(name, "r");
+	if (fptr){
+		fscanf(fptr, "%d %d %d %d", &num_server, &num_link, &num_user, &num_apps); 
+		setTotalEdges(num_link);
+		total_edges = num_link;
+		for(i = 0;i < num_link;i++){
+			fscanf(fptr, "%d %d %d", &bandwidth, &nodei, &nodej);
+			Edge edge( i, bandwidth, nodei, nodej);
+			setEdge(i, edge);
 		}
-		fclose( fptr );
+		fclose(fptr);
 	}
 	else fprintf( stderr, "[ERROR] Can not open edge file: %s\n", name );
 }
 void Graph::readServers( const char *name ) {
-	int i, j, k, s, e, u, a, c, m, n, o, x;
+	int i, j, num_server, num_link, num_user, num_apps, comp, stor, users, app, x;
 	FILE *fptr = fopen( name, "r" );
 	if ( fptr ) {
-		fscanf( fptr, "%d %d %d %d", &s, &e, &u, &a ); setTotalServers( s );
-		for ( i=0; i<total_servers; i++ ) {
-			fscanf( fptr, "%d %d %d %d", &c, &m, &n, &o );
-			bool conn[s], edge[e], user[u];
-			for ( j=0; j<s; j++ ) conn[j] = false;
-			for ( j=0; j<e; j++ ) edge[j] = false;
-			for ( j=0; j<u; j++ ) user[j] = false;
-			for ( j=0; j<n; j++ ) {
-				fscanf( fptr, "%d", &x );
-				conn[x] = true;
-				for ( k=0; k<e; k++ )
-					edges[k].getConnection(i)==x? edge[k]=true : 0;
+		fscanf( fptr, "%d %d %d %d", &num_server, &num_link, &num_user, &num_apps ); 
+		setTotalServers( num_server );
+		total_servers = num_server;
+		printf("%d %d %d %d\n", num_server, num_link, num_user, num_apps ); 
+
+		for (i = 0;i < num_server;i++) {
+			fscanf( fptr, "%d %d %d %d", &comp, &stor, &app, &users);
+			bool conn[num_server], edge[num_link], user[num_user], reps[num_apps];
+			for (j = 0;j < num_server;j++) conn[j] = false;
+			for (j = 0;j < num_link;j++) edge[j] = false;
+			for (j = 0;j < num_user;j++) user[j] = false;
+			for (j = 0;j < num_apps;j++) reps[j] = false;
+			int num_conn = 0;
+			for (j = 0;j < num_link;j++) {
+				if(edges[j].getSrcIndex() == i){
+					conn[edges[j].getDstIndex()] = true;
+					num_conn++;
+				}
+				else if(edges[j].getDstIndex() == i){
+					conn[edges[j].getSrcIndex()] = true;
+					num_conn++;
+				}
 			}
-			for ( j=0; j<o; j++ ) {
+			for (j = 0;j < app;j++) {
+				fscanf( fptr, "%d", &x );
+				reps[x] = true;
+			}
+			
+			for (j = 0;j < users;j++) {
 				fscanf( fptr, "%d", &x );
 				user[x] = true;
 			}
-			Server server( i, c, m, s, n, conn, e, n, edge, u, o, user, a, 0 );
+			Server server( i, comp, stor, num_server, num_conn, conn, num_link, num_conn, edge, num_user, users, user, num_apps, reps);
 			setServer( i, server );
 		}
 		fclose( fptr );
@@ -183,20 +211,30 @@ void Graph::showGraph() {
 	showServers();
 	showEdges();
 }
+
 void Graph::showServers() {
 	int i, j, c;
 	fprintf( stdout, "Servers: %d\n", total_servers );
 	for ( i=0; i<total_servers; i++ ) {
 		fprintf( stdout, "[SERVER %d] (comp, memo)=(%d, %d)\n", i, servers[i].getComp(), servers[i].getStor() );
+		
 		fprintf( stdout, "total_servers=%d, num_connections=%d\n", servers[i].getTotalServers(), servers[i].getNumConnections() );
-		for ( c=0, j=0; j<servers[i].getTotalServers(); j++ )
-			servers[i].getConnection(j)? fprintf( stdout, "[CONN %d] to [SERVER %d]\n", c++, j ) : 0;
+		for ( c=0, j=0; j<servers[i].getTotalServers(); j++ ){
+			if(servers[i].getConnection(j))
+				fprintf( stdout, "[CONN %d] to [SERVER %d]\n", c++, j );
+		}
+		
 		fprintf( stdout, "total_edges=%d, num_edges=%d", servers[i].getTotalEdges(), servers[i].getNumEdges() );
-		for ( j=0; j<servers[i].getTotalEdges(); j++ ) 
-			servers[i].getEdge(j)? fprintf( stdout, "	[EDGE %d]", j ) : 0;
+		for ( j=0; j<servers[i].getTotalEdges(); j++ ){
+			if(servers[i].getEdge(j))
+				fprintf( stdout, "	[EDGE %d]", j );
+		}
+
 		fprintf( stdout, "\ntotal_users=%d, num_users=%d", servers[i].getTotalUsers(), servers[i].getNumUsers() );
-		for ( j=0; j<servers[i].getTotalUsers(); j++ ) 
-			servers[i].getUser(j)? fprintf( stdout, "	[USER %d]", j ) : 0;
+		for ( j=0; j<servers[i].getTotalUsers(); j++ ){
+			if(servers[i].getUser(j))
+				fprintf( stdout, "	[USER %d]", j );
+		} 
 		fprintf( stdout, "\ntotal_apps=%d, num_replicas=%d\n", servers[i].getTotalApps(), servers[i].getNumApps() );
 		// for ( j=0; j<servers[i].getTotalApps(); j++ )
 	}
@@ -212,11 +250,15 @@ void Graph::showUsers() {
 		fprintf( stdout, "[USER %d] location=%d, num_apps=%d\n", i, users[i].getLocation(), users[i].getNumApps() );
 		/* FIX HERE */
 		fprintf( stdout, "Applications: " );
-		for ( int j=0; j<users[i].getNumApps(); j++ )
-			users[i].getApplication(j)? fprintf( stdout, "	[APP %d]", j ) : 0;
+		for ( int j=0; j<users[i].getNumApps(); j++ ){
+			if(users[i].getApplication(j))
+				fprintf( stdout, "	[APP %d]", j );
+		}
 		fprintf( stdout, "\nRequests: " );
-		for ( int j=0; j<users[i].getNumApps(); j++ )
-			users[i].getRequest(j)? fprintf( stdout, "	[APP %d]", j ) : 0;
+		for ( int j=0; j<users[i].getNumApps(); j++ ){
+			if(users[i].getRequest(j))
+				fprintf( stdout, "	[APP %d]", j );
+		}
 		fprintf( stdout, "\n" );
 	}
 }
@@ -225,13 +267,16 @@ void Graph::showApps() {
 	for ( int i=0; i<total_apps; i++ ) {
 		fprintf( stdout, "[APP %d] (comp_req, stor_req, band_req)=(%d, %d, %d)\n", i, apps[i].getComp(), apps[i].getStor(), apps[i].getBand());
 		fprintf( stdout, "num_servers=%d, num_replicas=%d\n", apps[i].getNumServers(), apps[i].getNumReplicas() );
-		for ( int j=0; j<apps[i].getNumServers(); j++ )
-			apps[i].getReplica(j)? fprintf( stdout, "	Replica on [SERVER %d]", j ) : 0;
+		for ( int j=0; j<apps[i].getNumServers(); j++ ){
+			if(apps[i].getReplica(j))
+				fprintf( stdout, "Replica on [SERVER %d]\n", j );
+		}
 		fprintf( stdout, "\n" );
 	}
 }
 
 void Graph::usersAction() {
+	
 	for ( int i=0; i<getTotalUsers(); i++ ) {
 		User *u = getUser(i);
 		Server *old_s = getServer( u->getLocation() );

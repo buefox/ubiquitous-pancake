@@ -6,12 +6,13 @@
 class Server {
 	public:
 		// Replica
-		Server() : index(-1), comp(-1), stor(-1), total_servers(-1), num_connections(-1), total_edges(-1), num_edges(-1), total_users(-1), num_users(-1), total_apps(-1), num_apps(-1) {}
-		Server( int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, int );
+		Server() : index(-1), comp(-1), stor(-1), total_servers(-1), num_connections(-1), power(0), total_edges(-1), num_edges(-1), total_users(-1), num_users(-1), total_apps(-1), num_apps(-1) {}
+		Server( int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, bool[] );
 		
 		int getIndex();
 		int getComp();
 		int getStor();
+		int getPower(); // 0517 added
 		
 		int getTotalServers();
 		int getNumConnections();
@@ -49,18 +50,20 @@ class Server {
 		void setTotalApps( int );
 		void setNumApps( int );
 		// void setReplica( int, Replica );
+		// power update and member functions
 
 	private:
 		int index; // Server number
 		int comp;  // CPU
 		int stor;  // Storage
+		int power;
 		
 		int total_servers;
 		int num_connections; // labeling total number of servers that connect to this server
-		std::vector<bool> connections;  // laberling which servers are connected th this server
+		std::vector<bool> connections;  // labeling which servers are connected th this server
 		
-		int total_edges;
-		int num_edges;  // total links
+		int total_edges; // total links
+		int num_edges;  
 		std::vector<bool> edges;  // labeling which links are connected to this server
 		
 		int total_users;

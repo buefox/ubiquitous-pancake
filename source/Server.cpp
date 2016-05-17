@@ -2,10 +2,11 @@
 #include <algorithm>
 #include "Server.h"
 
-Server::Server( int i, int c, int s, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, int num_r ) {
+Server::Server( int i, int c, int s, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, bool reps[] ) {
 	index = i;
 	comp = c;
 	stor = s;
+	power = 0; // 0517 added
 
 	total_servers = total_s;
 	num_connections = num_c;
@@ -20,10 +21,21 @@ Server::Server( int i, int c, int s, int total_s, int num_c, bool conns[], int t
 	total_users = total_u;
 	num_users = num_u;
 	users.resize( total_users, false );
-	for ( int j=0; j<total_users; j++ ) users[j] = u[j];
-
+	for ( int j=0; j<total_users; j++ ){
+		users[j] = u[j];
+		
+	}
+	// printf("server %d user %d\n", i, num_users);
 	total_apps = total_a;
-	num_apps = num_r;
+	num_apps = 0;
+	apps.resize(total_apps);
+	for(int j = 0;j < total_apps;++j){
+		apps[j] = reps[j];
+		if(apps[j]){
+			num_apps++;
+			
+		}
+	}
 	// for( int j=0; j<total_apps; j++ ) {}
 }
 
@@ -36,7 +48,9 @@ int Server::getComp() {
 int Server::getStor() {
 	return stor;
 }
-
+int Server::getPower(){ // 0517 added
+	return power;
+}
 int Server::getTotalServers() {
 	return total_servers;
 }
