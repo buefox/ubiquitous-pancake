@@ -65,9 +65,6 @@ void User::setRequest( int i, bool b ) {
 	else fprintf( stderr, "[ERROR] Invalid App. index %d\n", i );
 }
 
-int User::movement( int choice ) {
-	return rand() % choice;
-}
 void User::launchRequests() {
 	for ( int i=0; i<getNumApps(); i++ )
 		requests[i] = applications[i] & (rand() % 2?true:false);

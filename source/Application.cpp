@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "Application.h"
 
-App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[] ) {
+App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[], int max_r ) {
 	index = i;
 	comp = c;
 	stor = s;
@@ -12,6 +12,7 @@ App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[] ) {
 	replicas.resize( num_servers, false );
 	if ( reps )
 		for ( int j=0; j<num_servers; j++ ) replicas[j] = reps[j];
+	max_requests = max_r;
 }
 
 int App::getIndex() {
@@ -36,6 +37,13 @@ bool App::getReplica( int r ) {
 	if ( r < num_servers ) return replicas[r];
 	else fprintf( stderr, "[ERROR] Invalid replica index %d\n", r );
 	return false;
+}
+
+int App::getMaxRequests() {
+	return max_requests;
+}
+int App::getNumRequests() {
+	return num_requests;
 }
 
 void App::setAll( int i, int c, int m, int b, int num_s, int num_r, bool reps[] ) {
@@ -69,4 +77,11 @@ void App::setNumReplicas( int num ) {
 void App::setReplica( int r, bool b ) {
 	if ( r < num_servers ) replicas[r] = b;
 	else fprintf( stderr, "[ERROR] Invalid replica index %d\n", r );
+}
+
+void App::setMaxRequests( int r ) {
+	max_requests = r;
+}
+void App::setNumRequests( int r ) {
+	num_requests = r;
 }

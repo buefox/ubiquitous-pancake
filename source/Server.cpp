@@ -2,43 +2,43 @@
 #include <algorithm>
 #include "Server.h"
 
-Server::Server( int i, int c, int s, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, bool reps[] ) {
+Server::Server( int i, int c, int s, int idle, int peak, 
+	int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], 
+	int total_u, int num_u, bool u[], int total_a, int num_a, bool a[], int serv[] ) {
+	
 	index = i;
 	comp = c;
 	stor = s;
-	power = 0; // 0517 added
-
+	
+	power_idle = idle;
+	power_peak = peak;
+	// connections
 	total_servers = total_s;
 	num_connections = num_c;
 	connections.resize( total_servers, false );
 	for ( int j=0; j<total_servers; j++ ) connections[j] = conns[j];
-
+	// edges
 	total_edges = total_e;
 	num_edges = num_e;
 	edges.resize( total_edges, false );
 	for ( int j=0; j<total_edges; j++ ) edges[j] = e[j];
-
+	// users
 	total_users = total_u;
 	num_users = num_u;
 	users.resize( total_users, false );
-	for ( int j=0; j<total_users; j++ ){
-		users[j] = u[j];
-		
-	}
-	// printf("server %d user %d\n", i, num_users);
+	for ( int j=0; j<total_users; j++ )	users[j] = u[j];
+	// apps
 	total_apps = total_a;
-	num_apps = 0;
-	apps.resize(total_apps);
-	for(int j = 0;j < total_apps;++j){
-		apps[j] = reps[j];
-		if(apps[j]){
-			num_apps++;
-			
-		}
+	num_apps = num_a;
+	apps.resize( total_apps, false );
+	serving.resize( total_apps, -1 );
+	for ( int j=0; j<total_apps; j++ ) {
+		apps[j] = a[j];
+		serving[j] = serv[j];
+		num_apps += ( apps[j]? 1:0 ); 
 	}
-	// for( int j=0; j<total_apps; j++ ) {}
 }
-
+// basic
 int Server::getIndex() {
 	return index;
 }
@@ -48,9 +48,13 @@ int Server::getComp() {
 int Server::getStor() {
 	return stor;
 }
-int Server::getPower(){ // 0517 added
-	return power;
+int Server::getPowerIdle() {
+	return power_idle;
 }
+int Server::getPowerPeak() {
+	return power_peak;
+}
+// connections
 int Server::getTotalServers() {
 	return total_servers;
 }
@@ -62,7 +66,7 @@ bool Server::getConnection( int s ) {
 	else fprintf( stderr, "[ERROR] Invalid server index %d\n", s );
 	return false;
 }
-
+// edges
 int Server::getTotalEdges() {
 	return total_edges;
 }
@@ -74,7 +78,7 @@ bool Server::getEdge( int e ) {
 	else fprintf( stderr, "[ERROR] Invalid edge index %d\n", e );
 	return false;
 }
-
+// users
 int Server::getTotalUsers() {
 	return total_users;
 }
@@ -86,22 +90,38 @@ bool Server::getUser( int u ) {
 	else fprintf( stderr, "[ERROR] Invalid user index %d\n", u );
 	return false;
 }
-
+// apps and serving
 int Server::getTotalApps() {
 	return total_apps;
 }
 int Server::getNumApps() {
 	return num_apps;
 }
-/*
-Replica getReplica( int r ) {
-	if ( r < total_apps ) return replicas[r];
-	else fprintf( stderr, "[ERROR] Invalid application index %d\n", r );
-	return NULL;
+bool Server::getApp( int a ) {
+	if ( a < total_apps ) return apps[a];
+	else fprintf( stderr, "[ERROR] Invalid application index %d\n", a );
+	return false;
 }
-*/
+int Server::getServing( int a ) {
+	if ( a < total_apps ) return serving[a];
+	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
+	return -1;
+}
+// utilization
+int Server::getUsedComp() {
+	return used_comp;
+}
+int Server::getUsedStor() {
+	return used_stor;
+}
+double Server::getUtilization() {
+	return utilization;
+}
+double Server::getPower() {
+	return power;
+}
 
-void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, int num_r ) {
+void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, int num_r, bool a[], int s[] ) {
 	index = i;
 	comp = c;
 	stor = m;
@@ -123,10 +143,12 @@ void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], 
 
 	total_apps = total_a;
 	num_apps = num_r;
-	// replicas.resize( total_apps, NULL );
-	// for( int j=0; j<total_apps; j++ ) {}
+	for ( int j=0; j<total_apps; j++ ) {
+		apps[j] = a[j];
+		serving[j] = s[j];
+	}
 }
-
+// basic
 void Server::setIndex( int i ) {
 	index = i;
 }
@@ -136,7 +158,7 @@ void Server::setComp( int c ) {
 void Server::setStor( int m ) {
 	stor = m;
 }
-
+// connections
 void Server::setTotalServers( int s ) {
 	total_servers = s;
 	connections.resize( total_servers, false );
@@ -148,7 +170,7 @@ void Server::setConnection( int s, bool b ) {
 	if ( s < total_servers ) connections[s] = b;
 	else fprintf( stderr, "[ERROR] Invalid server index %d\n", s );
 }
-
+// edges
 void Server::setTotalEdges( int e ) {
 	total_edges = e;
 	edges.resize( total_edges, false );
@@ -160,7 +182,7 @@ void Server::setEdge( int e, bool b ) {
 	if ( e < total_edges ) edges[e] = b;
 	else fprintf( stderr, "[ERROR] Invalid edge index %d\n", e );
 }
-
+// users
 void Server::setTotalUsers( int u ){
 	total_users = u;
 	users.resize( total_users, false );
@@ -172,12 +194,31 @@ void Server::setUser( int u, bool b ) {
 	if ( u < total_users ) users[u] = b;
 	else fprintf( stderr, "[ERROR] Invalid user index %d\n", u );
 }
-
+// apps
 void Server::setTotalApps( int a ) {
 	total_apps = a;
-	// replicas.resize( total_apps, NULL );
 }
 void Server::setNumApps( int a ) {
 	num_apps = a;
 }
-// void Server::setReplica( int a, Replica r ) {}
+void Server::setApp( int a, bool b ) {
+	if ( a < total_apps ) apps[a] = b;
+	else fprintf( stderr, "[ERROR] Invalid application index %d\n", a );	
+}
+void Server::setServing( int a, int i ) {
+	if ( a < total_apps ) serving[a] = i;
+	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
+}
+// utilization
+void Server::setUsedComp( int used ) {
+	used_comp = used;
+}
+void Server::setUsedStor( int used ) {
+	used_stor = used;
+}
+void Server::setUtilization( double u ) {
+	utilization = ( u? u : (double)used_comp / comp );
+}
+void Server::setPower( double p ) {
+	power = ( p? p : power_idle * ( utilization ? 1 : 0 ) + ( power_peak - power_idle ) * utilization );
+}

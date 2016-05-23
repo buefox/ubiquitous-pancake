@@ -4,19 +4,19 @@
 #include <vector>
 typedef struct
 {
-	int stor, comp, bandwidth, repli;
+	int stor, comp, bandwidth, repli, max_r;
 }Apps;
 typedef struct 
 {
 	int stor, comp;
 }Servers;
-void makeServerInput(int num_server, int num_link, int num_user, int num_apps, bool is_ranged, int server_comp, int server_stor){
+void makeServerInput(int time_window, int num_server, int num_link, int num_user, int num_apps, bool is_ranged, int server_comp, int server_stor){
 	FILE* s = fopen("../input/Servers.txt", "w");
 	FILE* u = fopen("../input/Users.txt", "w");
 	FILE* a = fopen("../input/Applications.txt", "w");
-	fprintf(s, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
-	fprintf(u, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
-	fprintf(a, "%d %d %d %d\n\n", num_server, num_link, num_user, num_apps);
+	fprintf(s, "%d %d %d %d %d\n\n", time_window, num_server, num_link, num_user, num_apps);
+	fprintf(u, "%d %d %d %d %d\n\n", time_window, num_server, num_link, num_user, num_apps);
+	fprintf(a, "%d %d %d %d %d\n\n", time_window, num_server, num_link, num_user, num_apps);
   
 	std::vector<int> users;
 	std::vector<int> apps;
@@ -34,7 +34,10 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 	app_dis.resize(num_server);
 	applications.resize(num_apps);
 	servers.resize(num_server);
-
+	
+	std::vector< std::vector<int> > serving; // which server j serving for application k from server i
+	serving.resize( num_server, std::vector<int>( num_apps, -1 ) );
+	
 	for(int i = 0;i < num_server;++i){
 		app_dis[i].resize(num_apps);
 		servers[i].stor = server_stor;
@@ -57,6 +60,7 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 		applications[i].comp = res[rand()%3];
 		applications[i].bandwidth = rand()%50+50;
 		applications[i].repli = 0;
+		applications[i].max_r = 10;
 	}
 
 	srand(time(NULL));
@@ -82,6 +86,9 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 				applications[i].repli += 1;
 				servers[r].stor -= applications[i].stor;
 				servers[r].comp -= applications[i].comp;
+				
+				// serving: fix to find the nearest replica of application k from each server i
+				for ( int j=0; j<num_server; j++ ) serving[j][i] = r;
 				break;
 			}
 		}
@@ -139,9 +146,12 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 		for(int j = 0;j < (int)user_dis[i].size();++j){
 			fprintf(s, "%d ", user_dis[i][j]);
 		}
-		fprintf(s, "\n\n");
+		fprintf(s, "\n");
+		for ( int j=0; j<num_apps; j++ ) fprintf( s, "%d ", serving[i][j] );
+		fprintf( s, "\n" );
+
 	}
-	fprintf(s, "\n[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [USER] [APP]\n[APP_INDEX]\n[USER_INDEX]\n");
+	fprintf(s, "\n[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [USER] [APP]\n[APP_INDEX]\n[USER_INDEX]\n[SERVING]\n");
 	fclose(s);
 
 	for(i = 0;i < num_user;++i){
@@ -166,8 +176,9 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 		fprintf(u, "\n\n");
 	}
 
-	fprintf(u, "[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[LOCATION] [NUM_APPS]\n[APP_INDEX]\n");
+	fprintf(u, "[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[LOCATION] [NUM_APPS]\n[APP_INDEX]\n");
 	fclose(u);
+	
 	for(int i = 0;i < num_apps;++i){
 		fprintf(a, "%d %d %d %d ", applications[i].comp, applications[i].stor, applications[i].bandwidth, applications[i].repli);
 		// rand()%50+50 means the bandwidth req of app is now 50-100, tend to chage
@@ -175,14 +186,12 @@ void makeServerInput(int num_server, int num_link, int num_user, int num_apps, b
 		for(int j = 0;j < num_server;++j)
 			if(app_dis[j][i])
 				fprintf(a, "%d ", j);
-		// fprintf(a, "]\n");  
-		fprintf(a, "\n");  
-
+		fprintf(a, "%d\n", applications[i].max_r );
 	}
 
-	fprintf(a, "\n[TOTAL_SERVERS] [TOTAL_EDGES] [TOTAL_USERS] [TOTAL_APPS]\n[COMP_REQ] [MEMO_REQ] [BAND_REQ] [NUM_REPLICA] [ARR_EXIST_SERVER]\n");
+	fprintf(a, "\n[TIME_WINDOW] [TOTAL_SERVERS] [TOTAL_EDGES] [TOTAL_USERS] [TOTAL_APPS]\n[COMP_REQ] [MEMO_REQ] [BAND_REQ] [NUM_REPLICA] [ARR_EXIST_SERVER] [MAX_REQUESTS]\n");
 }
-void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, bool weighted, int minw, int maxw){
+void makeEdgeInput(int time_window, int num_server, int num_link, int num_user, int num_apps, bool weighted, int minw, int maxw){
 	// make a random connected graph with given node egde and weighted rand (if)
 	int maxEdges, nodeA, nodeB, numEdges, temp;
 	// int permute[num_server+1];
@@ -261,14 +270,14 @@ void makeEdgeInput(int num_server, int num_link, int num_user, int num_apps, boo
 
 	// write to file
 	FILE* f = fopen("../input/Edges.txt", "w");
-	fprintf(f, "%d %d %d %d\n", num_server, num_link, num_user, num_apps);
+	fprintf(f, "%d %d %d %d %d\n", time_window, num_server, num_link, num_user, num_apps);
 	// for(int k = 1; k <= num_link;++k){
 	//     printf("%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
 	// }
 	for(int k = 1; k <= num_link;++k){
 		fprintf(f, "%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
 	}
-	fprintf(f, "\n[NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[BANDWIDTH] [NODEA] [NODEB]\n");
+	fprintf(f, "\n[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[BANDWIDTH] [NODEA] [NODEB]\n");
 	fclose(f);
 }
 int main(int args, char* argv[]){
@@ -284,25 +293,27 @@ int main(int args, char* argv[]){
 
 
 	// arguments check
-	if(args < 9){
-		printf("usage ./inputGenerator num_server num_link num_user num_apps is_weighted min_link max_link server_comp server_stor\n");
+	if(args < 10){
+		printf("usage ./inputGenerator time_window num_server num_link num_user num_apps is_weighted min_link max_link server_comp server_stor\n");
 		return -1;
 	}
 	
-	int num_server, num_link, num_user, num_apps, server_comp, server_stor;
-	int minw = 0, maxw = 0;
+	int time_window, num_server, num_link, num_user, num_apps, server_comp, server_stor;
+	int minw, maxw;
 	bool weighted = false;
-	if(atoi(argv[5]) == 1){
-		weighted = true;
-		minw = atoi(argv[6]);
-		maxw = atoi(argv[7]);
-	}
-	num_server = atoi(argv[1]);
-	num_link = atoi(argv[2]);
-	num_user = atoi(argv[3]);
-	num_apps = atoi(argv[4]);
-	server_comp = atoi(argv[8]);
-	server_stor = atoi(argv[9]);
+	
+	time_window = atoi(argv[1]);
+	num_server = atoi(argv[2]);
+	num_link = atoi(argv[3]);
+	num_user = atoi(argv[4]);
+	num_apps = atoi(argv[5]);
+	
+	weighted = ( atoi( argv[6] ) ? true : false );
+	minw = ( atoi( argv[6] ) ? atoi( argv[7] ) : 0 );
+	maxw = ( atoi( argv[6] ) ? atoi( argv[8] ) : 0 );
+	
+	server_comp = atoi(argv[9]);
+	server_stor = atoi(argv[10]);
 	// printf("!\n");
 	// check valid input of num_server and num_link
 	if(num_link < (num_server - 1)){
@@ -317,9 +328,7 @@ int main(int args, char* argv[]){
 	}
 	srand(time(NULL));
 
-	makeEdgeInput(num_server, num_link, num_user, num_apps, weighted, minw, maxw);
+	makeEdgeInput(time_window, num_server, num_link, num_user, num_apps, weighted, minw, maxw);
 	// printf("!!\n");
-	makeServerInput(num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
-
-
+	makeServerInput(time_window, num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
 }

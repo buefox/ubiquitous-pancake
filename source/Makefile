@@ -6,6 +6,8 @@ SOURCES = Instance.cpp User.cpp Application.cpp Edge.cpp Server.cpp Graph.cpp ma
 OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)%.o, $(SOURCES)) #$(SOURCES:.cpp=.o)
 EXEC = main
 
+ITER = 1
+
 IN_DIR = ../input/
 INPUTS = Applications.txt Users.txt Edges.txt Servers.txt
 
@@ -18,9 +20,8 @@ $(OBJ_DIR)%.o: %.cpp
 	$(CC) -I $(INC_DIR) $(CFLAGS) $< -o $@
 
 run: $(EXEC)
-	./$(EXEC) $(addprefix $(IN_DIR), $(INPUTS))
+	./$(EXEC) $(ITER) $(addprefix $(IN_DIR), $(INPUTS))
 
 clean:
-	rm -rf $(OBJECTS) $(EXEC)
+	rm -rf $(OBJECTS) $(EXEC) *~ .*~
 	clear
-	ls
