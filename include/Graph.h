@@ -1,15 +1,34 @@
 #ifndef _GRAPH_H
 #define _GRAPH_H
+
+#include <stdlib.h>
+#include <limits.h>
+
 #include <vector>
+#include <tuple>
+#include <queue>
+#include <algorithm>
+
 #include "Server.h"
 #include "Edge.h"
 #include "Application.h"
 #include "User.h"
 
+typedef struct Vertex {
+	int index;
+	int distance;
+	int parent;
+	int cost;
+} vertex;
+
 class Graph {
 	public:
-		Graph() : total_servers(-1), total_edges(-1), total_users(-1), total_apps(-1) {}
-		Graph( int, Server [], int, Edge [], int, User [], int, App [] );
+		Graph() : time_window(-1), power_threshold(-1), total_servers(-1), total_edges(-1), total_users(-1), total_apps(-1) {}
+		Graph( int, int, int, Server [], int, Edge [], int, User [], int, App [] );
+		
+		int getTimeWindow();
+		int getPowerThreshold();
+		double getPower();
 		
 		int getTotalServers();
 		Server *getServer( int );
@@ -23,6 +42,10 @@ class Graph {
 		int getTotalApps();
 		App *getApp( int );
 
+		void setTimeWindow( int );
+		void setPowerThreshold( int );
+		void setPower( double p=0 );
+		
 		void setTotalServers( int );
 		void setServer( int, Server );
 		
@@ -41,7 +64,7 @@ class Graph {
 		void readGraph( const char *, const char * );
 		void readEdges( const char * );
 		void readServers( const char * );
-		// void test();
+
 		void showAll();
 		void showGraph();
 		void showServers();
@@ -49,9 +72,27 @@ class Graph {
 		void showUsers();
 		void showApps();
 		
-		void usersAction();
+		void userMovement( int );
+		// time slot
+		void genRequests( int );
+		void cleanRequests( int );
+		// time window
+		void genDistribution();
+		void showDistribution( int t=0 );
+		void cleanDistribution();
+		// algorithm
+		void reboot();
+		void algorithm();
+		
+		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
+		int costCal();
+		int costCalReplication();
 		
 	private:
+		int time_window;
+		int power_threshold;
+		double power;
+	
 		int total_servers;
 		std::vector<Server> servers;
 		
@@ -64,7 +105,7 @@ class Graph {
 		int total_apps;
 		std::vector<App> apps;
 		
-		std::vector< std::vector<int> > distribution;
+		std::vector< std::vector< std::vector<int> > > distribution;
 };
 
 #endif

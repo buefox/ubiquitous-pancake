@@ -20,7 +20,6 @@ class User {
 		void setApplication( int, bool );
 		void setRequest( int, bool );
 
-		int movement( int ); // given the number of choices
 		void launchRequests(); // all the possible applications
 
 	private:
