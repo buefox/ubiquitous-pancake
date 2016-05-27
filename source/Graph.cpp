@@ -499,7 +499,7 @@ bool Graph::feasibility( int app, int num, int root, int cur ) {
 	return false;
 }
 
-void Graph::CleanUp(_edges& E) {
+void CleanUp(_edges& E) {
 	// cleaning up, releasing mem
 	for (size_t i = 0; i < E.size(); ++i) {
 		for (size_t j = 0; j < E[i].size(); ++j) {
@@ -508,7 +508,7 @@ void Graph::CleanUp(_edges& E) {
 	}
 }
 
-void Graph::addDirectedEdge(_edges& E, int a, int b, int cap, int cost){
+void addDirectedEdge(_edges& E, int a, int b, int cap, int cost){
 	// helper function for mcmf (minimum cost maximum flow)
 	// building up the edges (and its reverse edges)
 	E[a].push_back(new _edge(b, cap, cost));

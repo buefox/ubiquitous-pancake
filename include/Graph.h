@@ -114,9 +114,6 @@ class Graph {
 		
 		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
 		// helper function of costCal
-		void addDirectedEdge(_edges& , int , int , int , int );
-		void cleanDirectedEdge(_edges& );
-		void Cleanp(_edges& );
 		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int);
 		
 		int costCal(int, int, int, int, std::vector< std::vector<int> >&);
