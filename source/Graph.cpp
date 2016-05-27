@@ -473,6 +473,7 @@ void Graph::algorithm() {
 						cur_band[i][j] = pre_band[i][j];
 					}
 				}
+				// update the rest of data (server app )
 			}
 			fprintf( stderr, "[COST] (cur=%d) (pre=%d) [SOL %d]\n", cur_cost, pre_cost, sol );
 			
