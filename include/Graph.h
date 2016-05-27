@@ -82,7 +82,9 @@ class Graph {
 		void cleanDistribution();
 		// algorithm
 		void reboot();
+		void newAlgo(); // tradeoff between replication and transmission cost
 		void algorithm();
+		
 		
 		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
 		int costCal();
@@ -105,7 +107,7 @@ class Graph {
 		int total_apps;
 		std::vector<App> apps;
 		
-		std::vector< std::vector< std::vector<int> > > distribution;
+		std::vector< std::vector< std::vector<int> > > distribution; // servers * apps * time_window
 };
 
 #endif

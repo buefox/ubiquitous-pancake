@@ -390,6 +390,14 @@ void Graph::reboot() {
 			edges[i].setRemainBand( j );
 }
 
+void Graph::newAlgo() {
+	reboot();
+	
+	// requests
+	
+}
+
+
 void Graph::algorithm() {
 	reboot();
 	
@@ -401,7 +409,7 @@ void Graph::algorithm() {
 			requests.push_back( temp );
 		}
 	}
-	std::sort( rbegin( requests ), rend( requests ), 
+	std::sort( requests.rbegin(), requests.rend(), 
 		[]( std::tuple<int, int, int, int> const &t1, std::tuple<int, int, int, int> const &t2 )
 		{ return std::get<3>( t1 ) < std::get<3>( t2 ); } );
 		
@@ -468,114 +476,7 @@ bool Graph::feasibility( int app, int num, int root, int cur ) {
 	return false;
 }
 
-
-bool dij(int s, int t, vector< vector<int> >& cap, vector< vector<int> >& flow, vector< vector<int> >& cost, int* p, int* d, int* h){
-	for(int i = 0,i < total_servers;++i){
-		p[i] = 0;
-		d[i] = 1e9;
-	}
-	d[s] = 0;
-	p[s] = -s-1;
-	for(int k = 0;k < total_servers;++k){
-		int a = -1, min = 1e9;
-		for (int i = 0;i < total_servers;++i)
-			if (p[i] < 0 && d[i] < min)
-				min = d[a = i];
-
-		if (a == -1) break;
-		
-		p[a] = -p[a]-1;
-
-		for (int i = a, j = 0;j < total_servers;++j){
-			if (p[j] >= 0) continue;
-
-			// 先嘗試逆向沖減，可以降低（或不變）成本。
-			int d1 = d[i] - (cost[j][i] + h[j] - h[i]);
-			if (flow[j][i] > 0 && d1 < d[j])
-				d[j] = d1, p[j] = -i-1;
-
-			// 再嘗試正向流動
-			int d2 = d[i] + (cost[i][j] + h[i] - h[j]);
-			if (flow[i][j] < cap[i][j] && d2 < d[j])
-				d[j] = d2, p[j] = -i-1;
-		}	
-	}
-
-	/* 調整剩餘網路的每一條邊（包括逆向邊）的權重成為非負值，
-       下次就又可以使用Dijkstra's Algorithm了。 */
-
-	for (int i = 0;i < total_servers;++i)
-		if (h[i] < 1e9)     // 從源點流不到的點就不理它了
-			h[i] += d[i];   // 累加這次的最短路徑長度即可
-
-	/* 找到擴充路徑，就回傳true。 */
-
-	return p[t] >= 0;
-}
-int Graph::costCal(vector<Edge> edges, int total_servers, int size) {
-	// http://www.csie.ntnu.edu.tw/~u91029/Flow2.html
-	// feasibility: edge capacity
-	// minmum cost flow problem: https://en.wikipedia.org/wiki/Minimum-cost_flow_problem
-	vector< vector<int> > cap, flow, cost;
-	int p[total_servers], d[total_servers], h[total_servers];
-
-	// init
-	cap.resize(total_servers);
-	flow.resize(total_servers);
-	cost.resize(total_servers);
-	for(int i = 0;i < total_servers;++i){
-		cap[i].resize(total_servers);
-		flow[i].resize(total_servers);
-		cost[i].resize(total_servers);
-		p[i] = -1;
-		d[i] = 1e9;
-		h[i] = 0;
-	}
-	for(int i = 0;i < total_servers;++i){
-		for(int j = 0;j < total_servers;++j){
-			flow[i][j] = 0;
-			cost[i][j] = 1;
-			cap[i][j] = 0;
-		}
-	}
-	for(int i = 0;i < total_edges;++i){
-		cap[edges[i].getSrcIndex()][edges[i].getDstIndex()] = edge[i].getRemainBand();
-		cap[edges[i].getDstIndex()][edges[i].getSrcIndex()] = edge[i].getRemainBand();
-	}
-
-	int f = 0; c = 0; // 最小成本最大流的流量與成本
- 
-	// 不斷找成本最小的擴充路徑，直到找不到為止。
-	// （假設一開始就沒有負成本邊，不必先調整權重。）
-	while (dij(s, t, cap, flow, cost, p, d, h)){
-		int df = 1e9, dc = 0;
-
-		// 計算可以擴充的流量大小
-		for (int j = t, i = p[t];i != j; i = p[j=i])
-			// 因為逆向沖減可以降低（或不變）擴充路徑的成本，
-			// 所以如果逆向有流量，
-			// 那麼剛剛找路徑時一定是逆向沖減。
-			df = min(df, (flow[j][i] ? flow[j][i] : cap[i][j] - flow[i][j]));
-
-		// 更新擴充路徑上每一條管線的流量，
-		// 順便計算擴充路徑的成本。
-		for (int j = t, i = p[t];i != j; i = p[j=i])
-			if (flow[j][i])
-				// 因為逆向沖減可以降低（或不變）擴充路徑的成本，
-				// 所以如果逆向有流量，
-				// 那麼剛剛找路徑時一定是逆向沖減。
-				flow[j][i] -= df, dc -= cost[j][i];
-			else
-			flow[i][j] += df, dc += cost[i][j];
-
-		f += df;
-		c += df * dc;
-	}
-
-	// cout << "最大流的流量是" << flow;
-	// cout << "最小成本最大流的成本是" << cost;
-	printf("[flow] %d [cost] %d\n", f, c);
-
+int Graph::costCal() {
 	return INT_MAX;
 }
 
