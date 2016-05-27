@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -c -Wall
+CFLAGS = -c -Wall -std=c++11
 INC_DIR = ../include/
 OBJ_DIR = ../object/
 SOURCES = Instance.cpp User.cpp Application.cpp Edge.cpp Server.cpp Graph.cpp main.cpp

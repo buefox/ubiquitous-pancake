@@ -21,6 +21,32 @@ typedef struct Vertex {
 	int cost;
 } vertex;
 
+/*   below are helper data structure of implementing mcmf */
+struct _edge{
+	int to;
+	int cap;
+	int cost;
+	_edge* reverse_edge;
+	_edge(int d, int cap, int cost) : to(d), cap(cap), cost(cost), reverse_edge(NULL) {}
+};
+struct Ans
+{
+	int cost;
+	int cap;
+	Ans(int cost, int cap) : cost(cost), cap(cap) {};
+};
+
+typedef std::vector< std::vector<_edge*> > _edges;
+
+struct nodeinfo{
+	int cost;
+	int cap;
+	bool inq;
+	_edge* income_edge;
+	nodeinfo(int cost, int cap, bool inq, _edge* e) : cost(cost), cap(cap), inq(inq), income_edge(e) {}
+};
+/*   above are helper data structure of implementing mcmf */
+
 class Graph {
 	public:
 		Graph() : time_window(-1), power_threshold(-1), total_servers(-1), total_edges(-1), total_users(-1), total_apps(-1) {}
@@ -85,7 +111,13 @@ class Graph {
 		void algorithm();
 		
 		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
-		int costCal();
+		// helper function of costCal
+		void addDirectedEdge(_edges& , int , int , int , int );
+		void cleanDirectedEdge(_edges& );
+		void Cleanp(_edges& );
+		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int);
+		
+		int costCal(int, int, int, int, std::vector< std::vector<int> >&);
 		int costCalReplication();
 		
 	private:

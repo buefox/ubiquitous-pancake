@@ -231,7 +231,9 @@ void Graph::readServers( const char *name ) {
 				user[x] = true;
 			}
 			// serving
-			int serving[ num_apps ] = {0};
+			int serving[ num_apps ];
+			for(int i = 0;i < num_apps;++i)
+				serving[i]  = 0;
 			for ( j=0; j<num_apps; j++ ) fscanf( fptr, "%d", &serving[j] );
 			
 			int idle = 70, peak = 100, apps = 0;
@@ -395,16 +397,25 @@ void Graph::algorithm() {
 	
 	// requests
 	std::vector< std::tuple< int, int, int, int > > requests;
+	std::vector< std::vector<int> > pre_band(total_edges);
+	std::vector< std::vector<int> > cur_band(total_edges);
+
 	for ( int s=0; s<total_servers; s++ ) {
 		for ( int a=0; a<total_apps; a++ ) {
 			std::tuple<int, int, int, int> temp = std::make_tuple( time_window, s, a, distribution[ time_window ][s][a] * apps[a].getBand() );
 			requests.push_back( temp );
 		}
 	}
-	std::sort( rbegin( requests ), rend( requests ), 
+	std::sort( requests.rbegin(), requests.rend(), 
 		[]( std::tuple<int, int, int, int> const &t1, std::tuple<int, int, int, int> const &t2 )
 		{ return std::get<3>( t1 ) < std::get<3>( t2 ); } );
-		
+
+	for(int i = 0;i < total_edges;++i){
+		for(int j = 0;j <= time_window;++j){
+			pre_band[i].push_back(edges[i].getRemainBand(j));
+			cur_band[i].push_back(edges[i].getRemainBand(j));
+		}
+	}
 	// BFS
 	for ( unsigned int i=0; i<requests.size() && std::get<3>( requests[i] ) > 0; i++ ) {
 		// root
@@ -424,7 +435,13 @@ void Graph::algorithm() {
 		Q.push( v[ root ] );
 		
 		int sol_flag = 0, sol = servers[ root ].getServing( app );
-		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal() : INT_MAX );
+		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal(root, sol, app, apps[app].getBand(), pre_band) : INT_MAX );
+		// band_update
+		for(int i = 0;i < total_edges;++i){
+			for(int j = 0;j < time_window;++j){
+				cur_band[i][j] = pre_band[i][j];
+			}
+		}
 		while ( Q.empty() == false ) {
 			vertex cur = Q.front();
 			Q.pop();
@@ -435,13 +452,19 @@ void Graph::algorithm() {
 			else pre_dist = cur.distance;
 			
 			// cost
-			int cur_cost = ( feasibility( app, size / apps[app].getBand(), root, cur.index )? costCal() + costCalReplication() : INT_MAX );
+			int cur_cost = ( feasibility( app, size / apps[app].getBand(), root, cur.index )? costCal(root, cur.index, app, apps[app].getBand(), pre_band) + costCalReplication() : INT_MAX );
 			
 			fprintf( stderr, "[COST] (cur=%d) (pre=%d) [SOL %d]\n", cur_cost, pre_cost, sol );
 			if ( cur_cost <= pre_cost ) {
 				pre_cost = cur_cost;
 				sol = cur.index;
 				sol_flag = true;
+				// band_update
+				for(int i = 0;i < total_edges;++i){
+					for(int j = 0;j < time_window;++j){
+						cur_band[i][j] = pre_band[i][j];
+					}
+				}
 			}
 			fprintf( stderr, "[COST] (cur=%d) (pre=%d) [SOL %d]\n", cur_cost, pre_cost, sol );
 			
@@ -468,115 +491,130 @@ bool Graph::feasibility( int app, int num, int root, int cur ) {
 	return false;
 }
 
-
-bool dij(int s, int t, vector< vector<int> >& cap, vector< vector<int> >& flow, vector< vector<int> >& cost, int* p, int* d, int* h){
-	for(int i = 0,i < total_servers;++i){
-		p[i] = 0;
-		d[i] = 1e9;
+void Cleanup(_edges& E) {
+	// cleaning up, releasing mem
+	for (size_t i = 0; i < E.size(); ++i) {
+		for (size_t j = 0; j < E[i].size(); ++j) {
+			delete E[i][j];
+		}
 	}
-	d[s] = 0;
-	p[s] = -s-1;
-	for(int k = 0;k < total_servers;++k){
-		int a = -1, min = 1e9;
-		for (int i = 0;i < total_servers;++i)
-			if (p[i] < 0 && d[i] < min)
-				min = d[a = i];
-
-		if (a == -1) break;
-		
-		p[a] = -p[a]-1;
-
-		for (int i = a, j = 0;j < total_servers;++j){
-			if (p[j] >= 0) continue;
-
-			// 先嘗試逆向沖減，可以降低（或不變）成本。
-			int d1 = d[i] - (cost[j][i] + h[j] - h[i]);
-			if (flow[j][i] > 0 && d1 < d[j])
-				d[j] = d1, p[j] = -i-1;
-
-			// 再嘗試正向流動
-			int d2 = d[i] + (cost[i][j] + h[i] - h[j]);
-			if (flow[i][j] < cap[i][j] && d2 < d[j])
-				d[j] = d2, p[j] = -i-1;
-		}	
-	}
-
-	/* 調整剩餘網路的每一條邊（包括逆向邊）的權重成為非負值，
-       下次就又可以使用Dijkstra's Algorithm了。 */
-
-	for (int i = 0;i < total_servers;++i)
-		if (h[i] < 1e9)     // 從源點流不到的點就不理它了
-			h[i] += d[i];   // 累加這次的最短路徑長度即可
-
-	/* 找到擴充路徑，就回傳true。 */
-
-	return p[t] >= 0;
 }
-int Graph::costCal(vector<Edge> edges, int total_servers, int size) {
+
+void Graph::addDirectedEdge(_edges& edges, int a, int b, int cap, int cost){
+	// helper function for mcmf (minimum cost maximum flow)
+	// building up the edges (and its reverse edges)
+	edges[a].push_back(new _edge(b, cap, cost));
+	edges[b].push_back(new _edge(a, 0, -cost));
+	edges[a].back()->reverse_edge = edges[b].back();
+	edges[b].back()->reverse_edge = edges[a].back();
+}
+
+Ans Graph::mcmf(_edges& E, int s, int t, std::vector< std::vector<int> >& pre_band, int cur_time){
+	// algo implementation of minimum cost maximum(or to say, fixed amount) flow
+	std::vector<nodeinfo> nf;
+	Ans a(0,0);
+	while(true){
+		// using SPAF https://en.wikipedia.org/wiki/Shortest_Path_Faster_Algorithm
+		// a method similar to dijkstra, like BFS
+		std::vector<int> route(0);
+		std::vector<int> cap(0);
+		nf.assign(E.size(), nodeinfo(INT_MAX, 0, false, NULL));
+
+		nf[s].cost = 0;
+		nf[s].cap = INT_MAX;
+
+		std::queue<int> q;
+		q.push(s);
+		nf[s].inq = true;
+
+		while(!q.empty()){
+			int cur = q.front();
+			q.pop();
+			nf[cur].inq = false;
+
+			for(size_t i = 0;i < E[cur].size(); ++i){
+				_edge* cur_e = E[cur][i];
+				if(cur_e->cap == 0)
+					continue;
+				if(nf[cur].cost + cur_e->cost < nf[cur_e->to].cost){
+					nf[cur_e->to].cost = nf[cur].cost + cur_e->cost;
+					nf[cur_e->to].cap = std::min(nf[cur].cap, cur_e->cap);
+					nf[cur_e->to].income_edge = cur_e;
+
+					if(!nf[cur_e->to].inq && cur_e->to != t){
+						q.push(cur_e->to);
+						nf[cur_e->to].inq = true;
+					}
+				}
+			}
+		}
+		if(nf[t].cap == 0) // means that all the flow available goes to terminal
+			break;
+		// update total cost and capacity
+		a.cap += nf[t].cap;
+		a.cost += nf[t].cap * nf[t].cost;
+
+		for(_edge* i = nf[t].income_edge;i != NULL;i = nf[i->reverse_edge->to].income_edge){
+			i->cap -= nf[t].cap;
+			i->reverse_edge->cap += nf[t].cap;
+			// printf("%d %d\n", i->reverse_edge->to, i->cap);
+			// trace back current path
+			if(i->reverse_edge->to != s)
+				route.push_back(i->reverse_edge->to);
+			if(i != nf[t].income_edge && i->reverse_edge->to != s)
+				cap.push_back(i->cap);
+		}
+		// record the bandwidth usage for now
+		for(size_t i = 0;i < route.size()-1;++i){
+			for(int j = 0;j < total_edges;++j){
+				if((edges[j].getSrcIndex() == route[i] && edges[j].getDstIndex() == route[i+1]) ||
+				   (edges[j].getDstIndex() == route[i] && edges[j].getSrcIndex() == route[i+1]))
+					pre_band[j][cur_time] = cap[i];
+			}
+		}
+		
+
+	}
+
+	// printf("%d %d\n", a.cost, a.cap);
+	return a;
+
+}
+int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int> >& pre_band) {
 	// http://www.csie.ntnu.edu.tw/~u91029/Flow2.html
 	// feasibility: edge capacity
 	// minmum cost flow problem: https://en.wikipedia.org/wiki/Minimum-cost_flow_problem
-	vector< vector<int> > cap, flow, cost;
-	int p[total_servers], d[total_servers], h[total_servers];
-
-	// init
-	cap.resize(total_servers);
-	flow.resize(total_servers);
-	cost.resize(total_servers);
-	for(int i = 0;i < total_servers;++i){
-		cap[i].resize(total_servers);
-		flow[i].resize(total_servers);
-		cost[i].resize(total_servers);
-		p[i] = -1;
-		d[i] = 1e9;
-		h[i] = 0;
-	}
-	for(int i = 0;i < total_servers;++i){
-		for(int j = 0;j < total_servers;++j){
-			flow[i][j] = 0;
-			cost[i][j] = 1;
-			cap[i][j] = 0;
+	// printf("s:%d t:%d size:%d\n", s, t, size);
+	int total_cost = 0;
+	// for each time slot, find the minimum cost flow path
+	for(int i = 0;i < time_window;++i){
+		_edges E(total_servers + 2);
+		for(int i = 0;i < total_edges;++i){
+			addDirectedEdge(E, edges[i].getSrcIndex(), edges[i].getDstIndex(), edges[i].getRemainBand(i), 1);
+			addDirectedEdge(E, edges[i].getDstIndex(), edges[i].getSrcIndex(), edges[i].getRemainBand(i), 1);
+			// printf("src:%d dst:%d band:%d\n", edges[i].getSrcIndex(), edges[i].getDstIndex(), edges[i].getRemainBand(0));
 		}
+		addDirectedEdge(E, total_servers, s, distribution[i][s][app] * size, 0);
+		addDirectedEdge(E, t, total_servers + 1, distribution[i][s][app] * size, 0);
+		// printf("size: %d\n", distribution[i][s][app] * size);
+		Ans ans = mcmf(E, total_servers, total_servers + 1, pre_band, i);
+		if(ans.cap != distribution[i][s][app] * size){
+			Cleanup(E);
+			return INT_MAX;
+		}
+		// printf("cur_cost: %d\n", ans.cost);
+		total_cost += ans.cost;	
+		Cleanup(E);
 	}
-	for(int i = 0;i < total_edges;++i){
-		cap[edges[i].getSrcIndex()][edges[i].getDstIndex()] = edge[i].getRemainBand();
-		cap[edges[i].getDstIndex()][edges[i].getSrcIndex()] = edge[i].getRemainBand();
-	}
-
-	int f = 0; c = 0; // 最小成本最大流的流量與成本
- 
-	// 不斷找成本最小的擴充路徑，直到找不到為止。
-	// （假設一開始就沒有負成本邊，不必先調整權重。）
-	while (dij(s, t, cap, flow, cost, p, d, h)){
-		int df = 1e9, dc = 0;
-
-		// 計算可以擴充的流量大小
-		for (int j = t, i = p[t];i != j; i = p[j=i])
-			// 因為逆向沖減可以降低（或不變）擴充路徑的成本，
-			// 所以如果逆向有流量，
-			// 那麼剛剛找路徑時一定是逆向沖減。
-			df = min(df, (flow[j][i] ? flow[j][i] : cap[i][j] - flow[i][j]));
-
-		// 更新擴充路徑上每一條管線的流量，
-		// 順便計算擴充路徑的成本。
-		for (int j = t, i = p[t];i != j; i = p[j=i])
-			if (flow[j][i])
-				// 因為逆向沖減可以降低（或不變）擴充路徑的成本，
-				// 所以如果逆向有流量，
-				// 那麼剛剛找路徑時一定是逆向沖減。
-				flow[j][i] -= df, dc -= cost[j][i];
-			else
-			flow[i][j] += df, dc += cost[i][j];
-
-		f += df;
-		c += df * dc;
-	}
-
-	// cout << "最大流的流量是" << flow;
-	// cout << "最小成本最大流的成本是" << cost;
-	printf("[flow] %d [cost] %d\n", f, c);
-
-	return INT_MAX;
+	// int z;
+	// printf("cost:%d\n", total_cost);
+	// for(int i = 0;i < total_edges;++i){
+	// 	for(int j = 0;j < time_window;++j){
+	// 		printf("%d ", pre_band[i][j]);
+	// 	}
+	// 	printf("\n");
+	// }
+	return total_cost;
 }
 
 int Graph::costCalReplication() {
