@@ -392,6 +392,14 @@ void Graph::reboot() {
 			edges[i].setRemainBand( j );
 }
 
+void Graph::newAlgo() {
+	reboot();
+	
+	// requests
+	
+}
+
+
 void Graph::algorithm() {
 	reboot();
 	
@@ -491,7 +499,7 @@ bool Graph::feasibility( int app, int num, int root, int cur ) {
 	return false;
 }
 
-void Cleanup(_edges& E) {
+void Graph::CleanUp(_edges& E) {
 	// cleaning up, releasing mem
 	for (size_t i = 0; i < E.size(); ++i) {
 		for (size_t j = 0; j < E[i].size(); ++j) {
@@ -500,13 +508,13 @@ void Cleanup(_edges& E) {
 	}
 }
 
-void Graph::addDirectedEdge(_edges& edges, int a, int b, int cap, int cost){
+void Graph::addDirectedEdge(_edges& E, int a, int b, int cap, int cost){
 	// helper function for mcmf (minimum cost maximum flow)
 	// building up the edges (and its reverse edges)
-	edges[a].push_back(new _edge(b, cap, cost));
-	edges[b].push_back(new _edge(a, 0, -cost));
-	edges[a].back()->reverse_edge = edges[b].back();
-	edges[b].back()->reverse_edge = edges[a].back();
+	E[a].push_back(new _edge(b, cap, cost));
+	E[b].push_back(new _edge(a, 0, -cost));
+	E[a].back()->reverse_edge = E[b].back();
+	E[b].back()->reverse_edge = E[a].back();
 }
 
 Ans Graph::mcmf(_edges& E, int s, int t, std::vector< std::vector<int> >& pre_band, int cur_time){
@@ -599,12 +607,12 @@ int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int
 		// printf("size: %d\n", distribution[i][s][app] * size);
 		Ans ans = mcmf(E, total_servers, total_servers + 1, pre_band, i);
 		if(ans.cap != distribution[i][s][app] * size){
-			Cleanup(E);
+			CleanUp(E);
 			return INT_MAX;
 		}
 		// printf("cur_cost: %d\n", ans.cost);
 		total_cost += ans.cost;	
-		Cleanup(E);
+		CleanUp(E);
 	}
 	// int z;
 	// printf("cost:%d\n", total_cost);
