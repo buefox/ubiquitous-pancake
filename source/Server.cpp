@@ -4,7 +4,7 @@
 
 Server::Server( int i, int c, int s, int idle, int peak, 
 	int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], 
-	int total_u, int num_u, bool u[], int total_a, int num_a, bool a[], int serv[] ) {
+	int total_u, int num_u, bool u[], int total_a, int num_a, bool a[], int num_serv[], int serv[] ) {
 	
 	index = i;
 	comp = c;
@@ -31,10 +31,11 @@ Server::Server( int i, int c, int s, int idle, int peak,
 	total_apps = total_a;
 	num_apps = num_a;
 	apps.resize( total_apps, false );
-	serving.resize( total_apps, -1 );
+	serving.resize( total_apps );
 	for ( int j=0; j<total_apps; j++ ) {
 		apps[j] = a[j];
-		serving[j] = serv[j];
+		serving[j].resize( num_serv[j], -1 );
+		serving[j][0] = serv[j]; // intital: one candidate
 		num_apps += ( apps[j]? 1:0 ); 
 	}
 }
@@ -102,11 +103,17 @@ bool Server::getApp( int a ) {
 	else fprintf( stderr, "[ERROR] Invalid application index %d\n", a );
 	return false;
 }
-int Server::getServing( int a ) {
+std::vector<int> Server::getServing( int a ) {
 	if ( a < total_apps ) return serving[a];
+	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
+	return {-1};
+}
+int Server::getServing( int a, int c ) {
+	if ( a < total_apps ) return serving[a][c];
 	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
 	return -1;
 }
+
 // utilization
 int Server::getUsedComp() {
 	return used_comp;
@@ -121,7 +128,7 @@ double Server::getPower() {
 	return power;
 }
 
-void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, int num_r, bool a[], int s[] ) {
+void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], int total_e, int num_e, bool e[], int total_u, int num_u, bool u[], int total_a, int num_r, bool a[], int num_s[], int s[] ) {
 	index = i;
 	comp = c;
 	stor = m;
@@ -145,7 +152,8 @@ void Server::setAll( int i, int c, int m, int total_s, int num_c, bool conns[], 
 	num_apps = num_r;
 	for ( int j=0; j<total_apps; j++ ) {
 		apps[j] = a[j];
-		serving[j] = s[j];
+		for ( int k=0; k<num_s[j]; k++ )
+			serving[j][k] = s[k];
 	}
 }
 // basic
@@ -205,10 +213,15 @@ void Server::setApp( int a, bool b ) {
 	if ( a < total_apps ) apps[a] = b;
 	else fprintf( stderr, "[ERROR] Invalid application index %d\n", a );	
 }
-void Server::setServing( int a, int i ) {
-	if ( a < total_apps ) serving[a] = i;
+void Server::setServing( int a, std::vector<int> v ) {
+	if ( a < total_apps ) serving[a] = v;
 	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
 }
+void Server::setServing( int a, int c, int s ) {
+	if ( a < total_apps ) serving[a][c] = s;
+	else fprintf( stderr, "[ERROR] Invalid application index %d for serving\n", a );
+}
+
 // utilization
 void Server::setUsedComp( int used ) {
 	used_comp = used;

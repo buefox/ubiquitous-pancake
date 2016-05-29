@@ -7,7 +7,7 @@ class Server {
 	public:
 		// Replica		
 		Server() : index(-1), comp(-1), stor(-1), power_idle(-1), power_peak(-1), total_servers(-1), num_connections(-1), total_edges(-1), num_edges(-1), total_users(-1), num_users(-1), total_apps(-1), num_apps(-1) {}
-		Server( int, int, int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, int, bool[], int[] );
+		Server( int, int, int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, int, bool [], int [], int [] );
 		
 		int getIndex();
 		int getComp();
@@ -30,14 +30,15 @@ class Server {
 		int getTotalApps();
 		int getNumApps();
 		bool getApp( int );
-		int getServing( int );
+		std::vector<int> getServing( int );
+		int getServing( int, int );
 		
 		int getUsedComp();
 		int getUsedStor();
 		double getUtilization(); // CPU
 		double getPower();
 		
-		void setAll( int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, int, bool [], int [] );
+		void setAll( int, int, int, int, int, bool [], int, int, bool [], int, int, bool [], int, int, bool [], int [], int [] );
 		void setIndex( int );
 		void setComp( int );
 		void setStor( int );
@@ -57,7 +58,8 @@ class Server {
 		void setTotalApps( int );
 		void setNumApps( int );
 		void setApp( int, bool );
-		void setServing( int, int );
+		void setServing( int, std::vector<int> );
+		void setServing( int, int, int );
 		
 		void setUsedComp( int used=0 );
 		void setUsedStor( int used=0 );
@@ -87,7 +89,7 @@ class Server {
 		int total_apps;
 		int num_apps;
 		std::vector<bool> apps;
-		std::vector<int> serving; // the replica served app k from this server i
+		std::vector< std::vector<int> > serving; // the replica served app k from this server i
 		
 		int used_comp;
 		int used_stor;

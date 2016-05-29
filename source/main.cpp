@@ -9,7 +9,8 @@ int main( int argc, char *argv[] ) {
 	Graph G;
 	G.readAll( argv[2], argv[3], argv[4], argv[5] );
 	// G.showGraph();
-	G.showServers();
+	// G.showServers();
+	
 	for ( int iter=0; iter<atoi( argv[1] ); iter++ ) { // iterations
 		G.genDistribution();
 		// G.showDistribution();

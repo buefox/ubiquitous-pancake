@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <cmath>
 #include "Graph.h"
 
 Graph::Graph( int window, int thres, int total_s, Server s[], int total_e, Edge e[], int total_u, User u[], int total_a, App a[] ) {
@@ -231,13 +232,13 @@ void Graph::readServers( const char *name ) {
 				user[x] = true;
 			}
 			// serving
-			int serving[ num_apps ];
-			for(int i = 0;i < num_apps;++i)
-				serving[i]  = 0;
-			for ( j=0; j<num_apps; j++ ) fscanf( fptr, "%d", &serving[j] );
-			
+			int num_serv[ num_apps ], serving[ num_apps ];
+			for ( j=0; j<num_apps; j++ ) {
+				num_serv[j] = (int)std::ceil( (double)total_users / apps[j].getMaxRequests() );
+				fscanf( fptr, "%d", &serving[j] );
+			}
 			int idle = 70, peak = 100, apps = 0;
-			Server server( i, comp, stor, idle, peak, num_server, num_conn, conn, num_link, num_conn, edge, num_user, users, user, num_apps, apps, reps, serving );
+			Server server( i, comp, stor, idle, peak, num_server, num_conn, conn, num_link, num_conn, edge, num_user, users, user, num_apps, apps, reps, num_serv, serving );
 			setServer( i, server );
 		}
 		fclose( fptr );
@@ -275,10 +276,12 @@ void Graph::showServers() {
 		// apps
 		fprintf( stdout, "\ntotal_apps=%d, num_replicas=%d\n", servers[i].getTotalApps(), servers[i].getNumApps() );
 		for ( j=0; j<servers[i].getTotalApps(); j++ ) {
-			fprintf( stdout, "	[APP %d] served at [SERVER %d]", j, servers[i].getServing(j) );
+			for ( unsigned int k=0; k<servers[i].getServing(j).size(); k++ ) {
+				if ( servers[i].getServing( j, k ) != -1 )
+					fprintf( stdout, "	[APP %d] served at [SERVER %d]", j, servers[i].getServing(j, k) );
+			}
 			if( servers[i].getApp(j) ) fprintf( stdout, "	[REPLICA %d]", j );
 			fprintf( stdout, "\n" );
-			
 		}
 		fprintf( stdout, "\n" );
 	}
@@ -400,9 +403,6 @@ void Graph::reboot() {
 void Graph::algorithm() {
 	reboot();
 	
-	// requests
-	std::vector< std::tuple< int, int, int, int > > requests;
-
 	// tables storing some necessary data
 	std::vector< std::vector<int> > pre_band(total_edges);
 	std::vector< std::vector<int> > cur_band(total_edges);
@@ -417,20 +417,37 @@ void Graph::algorithm() {
 		}
 		servers[i].setNumApps(0);
 	}
-	for(int i = 0;i < total_apps;++i)
+	
+	
+	// requests
+	std::vector< std::tuple< int, int, int, int > > requests;
+	int max_requests[ total_apps ], max_index[ total_apps ];
+	for(int i = 0;i < total_apps;++i) {
 		apps[i].setNumReplicas(0);
+		max_requests[i] = 0;
+		max_index[i] = -1;
+	}
 
 	for ( int s=0; s<total_servers; s++ ) {
 		for ( int a=0; a<total_apps; a++ ) {
 			std::tuple<int, int, int, int> temp = std::make_tuple( time_window, s, a, distribution[ time_window ][s][a] * apps[a].getBand() );
+			if ( max_requests[a] < distribution[ time_window ][s][a] * apps[a].getBand() ) {
+				max_requests[a] = distribution[ time_window ][s][a] * apps[a].getBand();
+				max_index[a] = requests.size();
+				fprintf( stderr, "%d %d %d %d\n", s, a, distribution[ time_window ][s][a] * apps[a].getBand(), max_index[a] );
+			}
 			requests.push_back( temp );
 		}
 	}
-	std::sort( requests.rbegin(), requests.rend(), 
+	for ( int a=0; a<total_apps; a++ ) std::swap( requests[ a ], requests[ max_index[a] ] );
+	std::sort( requests.rbegin() + total_servers*total_apps - total_apps, requests.rend(), 
 		[]( std::tuple<int, int, int, int> const &t1, std::tuple<int, int, int, int> const &t2 )
 		{ return std::get<3>( t1 ) < std::get<3>( t2 ); } );
-
-
+	
+	std::sort( requests.rbegin(), requests.rend() - total_apps, 
+		[]( std::tuple<int, int, int, int> const &t1, std::tuple<int, int, int, int> const &t2 )
+		{ return std::get<3>( t1 ) < std::get<3>( t2 ); } );
+	
 	// BFS
 	for ( unsigned int i=0; i<requests.size() && std::get<3>( requests[i] ) > 0; i++ ) {
 		// root
@@ -457,7 +474,7 @@ void Graph::algorithm() {
 			}
 		}
 		cur_source = INT_MAX;
-		int sol_flag = 0, sol = servers[ root ].getServing( app );
+		int sol_flag = 0, sol = servers[ root ].getServing( app, 0 );
 		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal(root, sol, app, apps[app].getBand(), pre_band) : INT_MAX );
 		// band update
 		for(int i = 0;i < total_edges;++i){
@@ -519,7 +536,7 @@ void Graph::algorithm() {
 		if(sol_flag){
 			// there is a feasible solution
 			// update server
-			servers[root].setServing(app, sol);
+			servers[root].setServing(app, 0, sol);
 			if(!servers[sol].getApp(app)){
 				servers[sol].setApp(app, true);
 				
