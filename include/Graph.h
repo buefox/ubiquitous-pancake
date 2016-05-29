@@ -108,11 +108,9 @@ class Graph {
 		void cleanDistribution();
 		// algorithm
 		void reboot();
-		void newAlgo(); // tradeoff between replication and transmission cost
 		void algorithm();
-		
-		
 		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
+		
 		// helper function of costCal
 		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int);
 		

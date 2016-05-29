@@ -201,7 +201,7 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 }
 void makeEdgeInput(int time_window, int num_server, int num_link, int num_user, int num_apps, bool weighted, int minw, int maxw){
 	// make a random connected graph with given node egde and weighted rand (if)
-	int maxEdges, nodeA, nodeB, numEdges, temp;
+	int nodeA, nodeB, numEdges, temp; // maxEdges
 	// int permute[num_server+1];
 	std::vector<int> permute;
 	// bool adjcent[num_server+1][num_server+1];
@@ -289,7 +289,7 @@ void makeEdgeInput(int time_window, int num_server, int num_link, int num_user, 
 	fclose(f);
 }
 int main(int args, char* argv[]){
-	// usage ./inputGenerator num_server num_link num_user num_apps is_weighted \
+	// usage ./inputGenerator num_server num_link num_user num_apps is_weighted
 	//                        min_link max_link server_comp server_stor
 	// num_server: number of nodes on the graph
 	// num_link:   number of edges on the graph

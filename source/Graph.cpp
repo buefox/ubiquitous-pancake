@@ -397,14 +397,6 @@ void Graph::reboot() {
 			edges[i].setRemainBand( j );
 }
 
-void Graph::newAlgo() {
-	reboot();
-	
-	// requests
-	
-}
-
-
 void Graph::algorithm() {
 	reboot();
 	
