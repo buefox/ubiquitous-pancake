@@ -117,7 +117,7 @@ class Graph {
 		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int);
 		
 		int costCal(int, int, int, int, std::vector< std::vector<int> >&);
-		int costCalReplication();
+		int costCalReplication(int, int, int, std::vector< std::vector<bool> >&, std::vector< std::vector<int> >&, int& );
 		
 	private:
 		int time_window;

@@ -96,11 +96,19 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 
 	for(int i = 0;i < num_user;++i){
 		int r = rand() % num_server;
-		user_dis[r].push_back(users[i]);
+		user_dis[r].push_back(i);
 		loc[i] = r;
 	}
-	int i;
+	// for(int i = 0;i < num_server;++i){
+	// 	for(int j = 0;j < user_dis[i].size();++j)
+	// 		printf("%d ", user_dis[i][j]);
+	// 	printf("\n");
+	// }
+	// for(int i = 0;i < num_user;++i)
+	// 	printf("%d ", loc[i]);
+	// printf("\n");
 
+	int i;
 	for(i = 0;i < num_server;++i){
 		
 		for (int j = 0;j < num_apps;++j) {
@@ -151,7 +159,7 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 		fprintf( s, "\n" );
 
 	}
-	fprintf(s, "\n[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [USER] [APP]\n[APP_INDEX]\n[USER_INDEX]\n[SERVING]\n");
+	fprintf(s, "\n[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [APP] [USER]\n[APP_INDEX]\n[USER_INDEX]\n[SERVING]\n");
 	fclose(s);
 
 	for(i = 0;i < num_user;++i){
