@@ -298,7 +298,6 @@ void Graph::showUsers() {
 	fprintf( stdout, "<========== Users: %d ==========>\n", total_users );
 	for ( int i=0; i<total_users; i++ ) {
 		fprintf( stdout, "[USER %d] location=%d, num_apps=%d\n", i, users[i].getLocation(), users[i].getNumApps() );
-		/* FIX HERE */
 		fprintf( stdout, "Applications: " );
 		for ( int j=0; j<users[i].getNumApps(); j++ ){
 			if(users[i].getApplication(j))
@@ -315,20 +314,21 @@ void Graph::showUsers() {
 void Graph::showApps() {
 	fprintf( stdout, "<========== Applications: %d ==========>\n", total_apps );
 	for ( int i=0; i<total_apps; i++ ) {
-		fprintf( stdout, "[APP %d] (comp_req, stor_req, band_req, max_requests)=(%d, %d, %d, %d)\n", i, apps[i].getComp(), apps[i].getStor(), apps[i].getBand(), apps[i].getMaxRequests());
-		fprintf( stdout, "num_servers=%d, num_replicas=%d\n", apps[i].getNumServers(), apps[i].getNumReplicas() );
+		fprintf( stdout, "[APP %d]\n", i );
+		fprintf( stdout, "(comp_req=%d, stor_req=%d, band_req=%d, max_requests=%d)\n", apps[i].getComp(), apps[i].getStor(), apps[i].getBand(), apps[i].getMaxRequests() );
+		
+		fprintf( stdout, "(num_servers=%d, num_replicas=%d)", apps[i].getNumServers(), apps[i].getNumReplicas() );
 		for ( int j=0; j<apps[i].getNumServers(); j++ )
-			if(apps[i].getReplica(j))
-				fprintf( stdout, "[SERVER %d]", j );
-		fprintf( stdout, "\n" );
+			if ( servers[j].getApp(i) )
+				fprintf( stdout, " [SERVER %d]", j );
+		fprintf( stdout, "\nServing\n" );
+		for ( int j=0; j<apps[i].getNumServers(); j++ )
+			fprintf( stdout, "	AT [SERVER %d] GOTO [SERVER %d]\n", j, servers[j].getServing( i, 0 ) );
 	}
 }
 
 void Graph::userMovement( int id ) {
-	// User *u = getUser( id );
-	// Server *old_s = getServer( u->getLocation() );
 	int old_s = users[id].getLocation();
-	// int index = rand() % ( old_s->getNumConnections() + 1 ), j = 0, c = 0;
 	int index = rand() % ( servers[old_s].getNumConnections() + 1), j = 0, c = 0;
 	if( index != servers[old_s].getNumConnections() ){
 		for(j = 0;j < servers[old_s].getTotalServers() && c <= index;++j)
@@ -351,7 +351,6 @@ void Graph::genRequests( int t ) {
 			}
 			userMovement( u );
 		}
-		// showServe 
 		// simulate network flow and calculate network cost
 		// http://www.csie.ntnu.edu.tw/~u91029/Flow2.html
 		// multi-commodity flow problem: https://en.wikipedia.org/wiki/Multi-commodity_flow_problem
@@ -474,6 +473,7 @@ void Graph::algorithm() {
 			}
 		}
 		cur_source = INT_MAX;
+		int f_value, c = INT_MAX, r = INT_MAX;
 		int sol_flag = 0, sol = servers[ root ].getServing( app, 0 );
 		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal(root, sol, app, apps[app].getBand(), pre_band) : INT_MAX );
 		// band update
@@ -494,9 +494,9 @@ void Graph::algorithm() {
 			// cost
 			int cur_cost; 
 			// avoiding overflow, change the condition
-			if(feasibility( app, size / apps[app].getBand(), root, cur.index )){
-				int c = costCal(root, cur.index, app, apps[app].getBand(), pre_band);
-				int r = costCalReplication(cur.index, app, apps[app].getStor(), app_dis, pre_band, cur_source);// 
+			if( ( f_value = feasibility( app, size / apps[app].getBand(), root, cur.index ) ) == true ){
+				c = costCal(root, cur.index, app, apps[app].getBand(), pre_band);
+				r = costCalReplication(cur.index, app, apps[app].getStor(), app_dis, pre_band, cur_source);
 				// printf("%d %d\n", c, r);
 				
 				if(c == INT_MAX || r == INT_MAX){
@@ -533,6 +533,7 @@ void Graph::algorithm() {
 				}
 			}
 		}
+		
 		if(sol_flag){
 			// there is a feasible solution
 			// update server
@@ -566,28 +567,22 @@ void Graph::algorithm() {
 			// update apps
 			apps[app].setReplica(sol, true);
 			apps[app].setNumReplicas(apps[app].getNumReplicas() + 1);
-			fprintf( stderr, "[ROOT=%d] [APP=%d] [COST=%d] [SOL %d]\n", root, app, pre_cost, sol );
-			fprintf(stderr, "(power=%f) (thres=%d)\n", power, power_threshold);
-			fprintf(stderr, "--\n");
+			
 		}
-		else{
-			fprintf(stderr, "There is no feasible solution on placing app %d for req on server %d\n", app, root);
-			fprintf(stderr, "[ROOT=%d] [APP=%d] [COST=%d] [SOL %d]\n", root, app, pre_cost, sol );
-			fprintf(stderr, "(power=%f) (thres=%d)\n", power, power_threshold);
-			fprintf(stderr, "--\n");
+		else {
+			fprintf(stderr, "[No feasible solution] Because of:\n");
+			if ( f_value == false ) fprintf( stderr, "	Server Capacity" );
+			if ( r == INT_MAX ) fprintf( stderr, "	Replication Cost" );
+			if ( c == INT_MAX ) fprintf( stderr, "	Transmission Cost" );
+			fprintf( stderr, "\n" );
 		}
+		fprintf( stderr, "[ROOT=%d] [APP=%d] [COST=%d] [SOL %d]\n", root, app, pre_cost, sol );
+		fprintf(stderr, "(power=%f) (thres=%d)\n", power, power_threshold);
+		fprintf(stderr, "--\n");
 	}
 	// clean up
 	showDistribution();
-	showApps();
-	// showEdges();
-	// showServers();
-	// showUsers();
-
-	// for(int i = 0;i < total_servers;++i)
-	// 	printf("server:%d power:%f\n", i, servers[i].getPower());
-	// 	printf("server:%d comp:%d stor:%d\n", i, servers[i].getComp(), servers[i].getStor());
-
+	// showApps();
 }
 
 bool Graph::feasibility( int app, int num, int root, int cur ) {
@@ -628,7 +623,7 @@ Ans Graph::mcmf(_edges& E, int s, int t, std::vector< std::vector<int> >& pre_ba
 	std::vector<nodeinfo> nf;
 	Ans a(0,0);
 	while(true){
-		// using SPAF https://en.wikipedia.org/wiki/Shortest_Path_Faster_Algorithm
+		// using SPFA https://en.wikipedia.org/wiki/Shortest_Path_Faster_Algorithm
 		// a method similar to dijkstra, like BFS
 		std::vector<int> route(0);
 		std::vector<int> cap(0);
@@ -735,16 +730,6 @@ int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int
 		total_cost += ans.cost;	
 		CleanUp(E);
 	}
-	// debug output
-	// int z;
-	// printf("cost:%d\n", total_cost);
-	// for(int i = 0;i < total_edges;++i){
-	// 	for(int j = 0;j < time_window;++j){
-	// 		printf("%d ", pre_band[i][j]);
-	// 	}
-	// 	printf("\n");
-	// }
-	// scanf("%d", &z);
 	return total_cost;
 }
 
