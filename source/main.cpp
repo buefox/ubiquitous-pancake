@@ -13,8 +13,12 @@ int main( int argc, char *argv[] ) {
 	
 	for ( int iter=0; iter<atoi( argv[1] ); iter++ ) { // iterations
 		G.genDistribution();
-		// G.showDistribution();
-		G.algorithm();
+		// for(int i = 0;i <= G.getTimeWindow();++i)
+		// 	G.showDistribution(i);
+		// int z;
+		// scanf("%d", &z);
+		G.algorithm(iter);
+		G.cleanDistribution();
 	}
 	return EXIT_SUCCESS;
 }

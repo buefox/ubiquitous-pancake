@@ -108,13 +108,13 @@ class Graph {
 		void cleanDistribution();
 		// algorithm
 		void reboot();
-		void algorithm();
+		void algorithm( int );
 		bool feasibility( int, int, int, int ); // check for server capacity, power threshold and (max_requests)
 		
 		// helper function of costCal
-		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int);
+		Ans mcmf(_edges&, int, int, std::vector< std::vector<int> >&, int );
 		
-		int costCal(int, int, int, int, std::vector< std::vector<int> >&);
+		int costCal(int, int, int, int, std::vector< std::vector<int> >&,  std::vector<int>& );
 		int costCalReplication(int, int, int, std::vector< std::vector<bool> >&, std::vector< std::vector<int> >&, int& );
 		
 	private:

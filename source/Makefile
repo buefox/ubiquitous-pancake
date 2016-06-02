@@ -7,7 +7,7 @@ OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)%.o, $(SOURCES)) #$(SOURCES:.cpp=.o)
 EXEC = main
 IN_GEN = inputGenerator
 
-ITER = 1
+ITER = 100
 
 IN_DIR = ../input/
 INPUTS = Applications.txt Users.txt Edges.txt Servers.txt

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "Application.h"
 
-App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[], int max_r ) {
+App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[], int max_r, int time_window ) {
 	index = i;
 	comp = c;
 	stor = s;
@@ -13,6 +13,12 @@ App::App( int i, int c, int s, int b, int num_s, int num_r, bool reps[], int max
 	if ( reps )
 		for ( int j=0; j<num_servers; j++ ) replicas[j] = reps[j];
 	max_requests = max_r;
+	num_requests.resize(num_servers);
+	for(int i = 0;i < num_servers;++i){
+		for(int j = 0;j < time_window;++j){
+			num_requests[i].push_back(max_r);
+		}
+	}
 }
 
 int App::getIndex() {
@@ -42,8 +48,16 @@ bool App::getReplica( int r ) {
 int App::getMaxRequests() {
 	return max_requests;
 }
-int App::getNumRequests() {
-	return num_requests;
+int App::getNumRequests(int server, int time_slot) {
+	if(server > num_servers){
+		fprintf( stderr, "[ERROR] Invalid server index %d on getNumRequests\n", server );
+		return -1;
+	}
+	if(time_slot >= num_requests[server].size()){
+		fprintf( stderr, "[ERROR] Invalid time_slot index %d on getNumRequests\n", time_slot );
+		return -1;
+	}
+	return num_requests[server][time_slot];
 }
 
 void App::setAll( int i, int c, int m, int b, int num_s, int num_r, bool reps[] ) {
@@ -82,6 +96,14 @@ void App::setReplica( int r, bool b ) {
 void App::setMaxRequests( int r ) {
 	max_requests = r;
 }
-void App::setNumRequests( int r ) {
-	num_requests = r;
+void App::setNumRequests( int server, int time_slot, int r ) {
+	if(server > num_servers || server < 0){
+		fprintf( stderr, "[ERROR] Invalid server index %d on setNumRequests\n", server );
+		return;
+	}
+	if(time_slot >= num_requests[server].size() || time_slot < 0){
+		fprintf( stderr, "[ERROR] Invalid time_slot index %d on setNumRequests\n", time_slot );
+		return;
+	}
+	num_requests[server][time_slot] = r;
 }

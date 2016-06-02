@@ -22,7 +22,7 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 	std::vector<int> apps;
 	std::vector<int> loc; // user location
 	std::vector< std::vector<bool> > app_dis;
-	int res[3] = {1,2,4}; // tend to change
+	int res[3] = {2000, 4000, 8000}; // tend to change
 	std::vector< std::vector<int> > user_dis;
 	std::vector<Apps> applications;
 	std::vector<Servers> servers;
@@ -58,9 +58,9 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 		apps[i] = i;
 		applications[i].stor = res[rand()%3];
 		applications[i].comp = res[rand()%3];
-		applications[i].bandwidth = rand()%50+50;
+		applications[i].bandwidth = rand()%669+30;
 		applications[i].repli = 0;
-		applications[i].max_r = 10;
+		applications[i].max_r = 100;
 	}
 
 	srand(time(NULL));
@@ -93,7 +93,6 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 			}
 		}
 	}
-
 	for(int i = 0;i < num_user;++i){
 		int r = rand() % num_server;
 		user_dis[r].push_back(i);
@@ -161,7 +160,6 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 	}
 	fprintf(s, "\n[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[COMP] [STOR] [APP] [USER]\n[APP_INDEX]\n[USER_INDEX]\n[SERVING]\n");
 	fclose(s);
-
 	for(i = 0;i < num_user;++i){
 		int n = 0;
 		while(n == 0){
@@ -186,7 +184,6 @@ void makeServerInput(int time_window, int num_server, int num_link, int num_user
 
 	fprintf(u, "[TIME_WINDOW] [NUM_SERVER] [NUM_LINK] [NUM_USER] [NUM_APPS]\n[LOCATION] [NUM_APPS]\n[APP_INDEX]\n");
 	fclose(u);
-	
 	for(int i = 0;i < num_apps;++i){
 		fprintf(a, "%d %d %d %d ", applications[i].comp, applications[i].stor, applications[i].bandwidth, applications[i].repli);
 		// rand()%50+50 means the bandwidth req of app is now 50-100, tend to chage
@@ -254,9 +251,12 @@ void makeEdgeInput(int time_window, int num_server, int num_link, int num_user, 
 			weight[numEdges] = minw + rand() % (maxw - minw + 1);
 		}
 	}
-	
+	// printf("!!\n");
+	// for(int k = 1; k <= numEdges;++k){
+	// 	printf( "%d %d %d\n", weight[k], nodei[k]-1, nodej[k]-1);
+	// }
 	// add remaining edges
-	while(numEdges <= num_link){
+	while(numEdges < num_link){
 		nodeA = rand() % num_server + 1;
 		nodeB = rand() % num_server + 1;
 		if(nodeA == nodeB) continue;
@@ -267,9 +267,13 @@ void makeEdgeInput(int time_window, int num_server, int num_link, int num_user, 
 		}
 		if(!(adjcent[nodeA][nodeB])){
 			numEdges++;
+			// int z;
+			// printf("--%d %d %d\n", nodeA, nodeB, numEdges);
+			// scanf("%d", &z);
 			nodei[numEdges] = nodeA;
 			nodej[numEdges] = nodeB;
 			adjcent[nodeA][nodeB] = true;
+			adjcent[nodeB][nodeA] = true;
 			if(weighted){
 				weight[numEdges] = minw + rand() % (maxw - minw + 1);
 			}

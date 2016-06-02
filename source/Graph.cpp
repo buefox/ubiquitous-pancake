@@ -117,6 +117,7 @@ void Graph::readAll( const char *file_apps, const char *file_users, const char *
 	readGraph( file_edges, file_servers );
 	
 	distribution.resize( time_window+1, std::vector< std::vector<int> >( total_servers, std::vector<int>( total_apps, 0 ) ) );
+	// printf("XD\n");
 }
 void Graph::readApps( const char *name ) {
 	int i, time_window, num_server, num_link, num_user, num_apps, comp, stor, bandwidth, num_replicas, n, max_requests;
@@ -140,7 +141,7 @@ void Graph::readApps( const char *name ) {
 			fscanf(fptr, "%c", &temp);
 			fscanf( fptr, "%d", &max_requests );
 
-			App app( i, comp, stor, bandwidth, num_server, num_replicas, reps, max_requests);
+			App app( i, comp, stor, bandwidth, num_server, num_replicas, reps, max_requests, time_window);
 			setApp( i, app );
 		}
 		fclose( fptr ); 
@@ -198,7 +199,7 @@ void Graph::readServers( const char *name ) {
 		setTotalServers( num_server );
 		total_servers = num_server;
 		fprintf( stderr, "%d %d %d %d\n", num_server, num_link, num_user, num_apps );
-		setPowerThreshold( num_server * 80 ); // setting
+		setPowerThreshold( num_server * 70 ); // setting
 		
 		for (i = 0;i < num_server;i++) {
 			fscanf( fptr, "%d %d %d %d", &comp, &stor, &app, &users);
@@ -397,17 +398,30 @@ void Graph::reboot() {
 	for ( int i=0; i<total_edges; i++ )
 		for ( int j=0; j<=time_window; j++ )
 			edges[i].setRemainBand( j );
+	for(int i = 0;i < total_apps;++i){
+		for(int j = 0;j < total_servers;++j){
+			for(int k = 0;k < time_window;++k){
+				apps[i].setNumRequests(j, k, apps[i].getMaxRequests());
+			}
+		}
+	}
 }
 
-void Graph::algorithm() {
+void Graph::algorithm(int iter) {
 	reboot();
-	
 	// tables storing some necessary data
 	std::vector< std::vector<int> > pre_band(total_edges);
 	std::vector< std::vector<int> > cur_band(total_edges);
 	std::vector< std::vector<bool> > app_dis(total_servers);
+	// std::vectro< std::vector< std::vector<int> > > pre_req(total_apps);
+	// std::vectro< std::vector< std::vector<int> > > cur_req(total_apps);
+	std::vector<int> pre_req(time_window);
+	std::vector<int> cur_req(time_window);
 	int cur_source = INT_MAX;
-
+	for(int i = 0;i < total_edges;++i){
+		pre_band[i].resize(time_window+1);
+		cur_band[i].resize(time_window+1);
+	}
 	for(int i = 0;i < total_servers;++i){
 		for(int j = 0;j < total_apps;++j){
 			app_dis[i].push_back(servers[i].getApp(j));
@@ -416,7 +430,18 @@ void Graph::algorithm() {
 		}
 		servers[i].setNumApps(0);
 	}
-	
+	// for(int j = 0;j < total_servers;++j){
+	// 	for(int k = 0;k < total_apps;++k){
+	// 		if(app_dis[j][k])
+	// 			printf("1 ");
+	// 		else
+	// 			printf("0 ");
+	// 	}
+	// 	printf("\n");
+	// }
+	// int z;
+	// scanf("%d", &z);
+	// 6/1 add table(s) for req quota
 	
 	// requests
 	std::vector< std::tuple< int, int, int, int > > requests;
@@ -433,7 +458,7 @@ void Graph::algorithm() {
 			if ( max_requests[a] < distribution[ time_window ][s][a] * apps[a].getBand() ) {
 				max_requests[a] = distribution[ time_window ][s][a] * apps[a].getBand();
 				max_index[a] = requests.size();
-				fprintf( stderr, "%d %d %d %d\n", s, a, distribution[ time_window ][s][a] * apps[a].getBand(), max_index[a] );
+				// fprintf( stderr, "%d %d %d %d\n", s, a, distribution[ time_window ][s][a] * apps[a].getBand(), max_index[a] );
 			}
 			requests.push_back( temp );
 		}
@@ -446,7 +471,6 @@ void Graph::algorithm() {
 	std::sort( requests.rbegin(), requests.rend() - total_apps, 
 		[]( std::tuple<int, int, int, int> const &t1, std::tuple<int, int, int, int> const &t2 )
 		{ return std::get<3>( t1 ) < std::get<3>( t2 ); } );
-	
 	// BFS
 	for ( unsigned int i=0; i<requests.size() && std::get<3>( requests[i] ) > 0; i++ ) {
 		// root
@@ -465,28 +489,40 @@ void Graph::algorithm() {
 		std::queue< vertex > Q;
 		Q.push( v[ root ] );
 		
-		
 		for(int i = 0;i < total_edges;++i){
+
 			for(int j = 0;j <= time_window;++j){
-				pre_band[i].push_back(edges[i].getRemainBand(j));
-				cur_band[i].push_back(edges[i].getRemainBand(j));
+				pre_band[i][j] = edges[i].getRemainBand(j);
+				cur_band[i][j] = edges[i].getRemainBand(j);
 			}
 		}
 		cur_source = INT_MAX;
 		int f_value, c = INT_MAX, r = INT_MAX;
+
 		int sol_flag = 0, sol = servers[ root ].getServing( app, 0 );
-		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal(root, sol, app, apps[app].getBand(), pre_band) : INT_MAX );
+		for(int i = 0;i < time_window;++i){
+			pre_req[i] = apps[app].getNumRequests(sol, i);
+			cur_req[i] = apps[app].getNumRequests(sol, i);
+		}
+
+		int pre_dist = v[ root ].distance, pre_cost = ( feasibility( app, size / apps[app].getBand(), root, sol )? costCal(root, sol, app, apps[app].getBand(), pre_band, pre_req) : INT_MAX );
 		// band update
 		for(int i = 0;i < total_edges;++i){
 			for(int j = 0;j <= time_window;++j){
 				cur_band[i][j] = pre_band[i][j];
 			}
 		}
+		// req quota update
+		for(int i = 0;i < time_window;++i){
+			cur_req[i] = pre_req[i];
+			pre_req[i] = apps[app].getNumRequests(sol, i);
+		}
+
 		while ( Q.empty() == false ) {
 			vertex cur = Q.front();
 			Q.pop();
 			
-			// fprintf( stderr, "[ROOT %d] [APP %d] [SIZE %d] [CUR %d] [DIST %d]\n", root, app, size, cur.index, cur.distance );
+			fprintf( stderr, "[ROOT %d] [APP %d] [SIZE %d] [CUR %d] [DIST %d]\n", root, app, size, cur.index, cur.distance );
 			// check
 			if ( sol_flag == true && pre_dist < cur.distance ) break;
 			else pre_dist = cur.distance;
@@ -494,11 +530,34 @@ void Graph::algorithm() {
 			// cost
 			int cur_cost; 
 			// avoiding overflow, change the condition
-			if( ( f_value = feasibility( app, size / apps[app].getBand(), root, cur.index ) ) == true ){
-				c = costCal(root, cur.index, app, apps[app].getBand(), pre_band);
+			for(int i = 0;i < time_window;++i){
+				pre_req[i] = apps[app].getMaxRequests();
+			}
+			f_value = feasibility( app, size / apps[app].getBand(), root, cur.index );
+			if(  f_value ){
+				c = costCal(root, cur.index, app, apps[app].getBand(), pre_band, pre_req);
 				r = costCalReplication(cur.index, app, apps[app].getStor(), app_dis, pre_band, cur_source);
-				// printf("%d %d\n", c, r);
 				
+				if(cur_source == INT_MAX){
+					printf("!\n");
+					printf("(iter=%d) (root=%d) (cur=%d)\n", iter, root, cur.index);
+					for(int j = 0;j < total_servers;++j){
+						for(int k = 0;k < total_apps;++k){
+							if(app_dis[j][k])
+								printf("1 ");
+							else
+								printf("0 ");
+						}
+						printf("\n");
+					}
+					int z;
+					scanf("%d", &z);
+				
+				}
+				// printf("%d %d\n", c, r);
+				// printf("!");
+				// int z;
+				// scanf("%d", &z);
 				if(c == INT_MAX || r == INT_MAX){
 					cur_cost = INT_MAX;
 				}
@@ -509,7 +568,7 @@ void Graph::algorithm() {
 			else{
 				cur_cost = INT_MAX;
 			}
-			
+
 			// fprintf( stderr, "[COST] (cur=%d) (pre=%d) [SOL %d]\n", cur_cost, pre_cost, sol );
 			if ( cur_cost <= pre_cost && cur_cost < INT_MAX) {
 				pre_cost = cur_cost;
@@ -521,6 +580,13 @@ void Graph::algorithm() {
 						cur_band[i][j] = pre_band[i][j];
 					}
 				}
+				for(int i = 0;i < time_window;++i){
+					cur_req[i] = pre_req[i];
+					pre_req[i] = apps[app].getNumRequests(sol, i);
+				}
+				// for(int i = 0;i < time_window;++i)
+				// 	printf("%d ", cur_req[i]);
+				// printf("\n");
 			}
 			// fprintf( stderr, "[COST] (cur=%d) (pre=%d) [SOL %d]\n", cur_cost, pre_cost, sol );
 			
@@ -533,7 +599,7 @@ void Graph::algorithm() {
 				}
 			}
 		}
-		
+
 		if(sol_flag){
 			// there is a feasible solution
 			// update server
@@ -549,9 +615,17 @@ void Graph::algorithm() {
 				servers[sol].setPower();
 				servers[sol].setNumApps(servers[sol].getNumApps() + 1);
 				power += servers[sol].getPower() - pre_power;
-				// int z;
 				// printf("server:%d usedcomp:%d usedstor:%d power:%f\n", sol, servers[sol].getUsedComp(), servers[sol].getUsedStor(), power);			
-				// scanf("%d", &z);
+				// update apps
+				apps[app].setReplica(sol, true);
+				apps[app].setNumReplicas(apps[app].getNumReplicas() + 1);
+				// if(cur_source == INT_MAX){
+				// 	printf("!\n");
+				// 	printf("(root=%d) (cur=%d)\n", root, sol);
+				// 	int z;
+				// 	scanf("%d", &z);
+				// }
+
 				if(cur_source != sol)
 					printf("Replicate (app=%d) from (source=%d) to (sol=%d)\n", app, cur_source, sol);
 			}
@@ -564,10 +638,14 @@ void Graph::algorithm() {
 				}
 				// printf("\n");
 			}
-			// update apps
-			apps[app].setReplica(sol, true);
-			apps[app].setNumReplicas(apps[app].getNumReplicas() + 1);
-			
+
+			for(int i = 0;i < time_window;++i){
+				apps[app].setNumRequests(sol, i, cur_req[i]);
+				// printf("%d ", cur_req[i]);
+			}
+			// printf("\n");
+			// int z;
+			// scanf("%d", &z);
 		}
 		else {
 			fprintf(stderr, "[No feasible solution] Because of:\n");
@@ -575,21 +653,134 @@ void Graph::algorithm() {
 			if ( r == INT_MAX ) fprintf( stderr, "	Replication Cost" );
 			if ( c == INT_MAX ) fprintf( stderr, "	Transmission Cost" );
 			fprintf( stderr, "\n" );
+			fprintf( stderr, "[ROOT=%d] [APP=%d] [COST=%d] [SOL %d]\n", root, app, pre_cost, sol );
+			// showEdges();
+			// showServers();
+			// for(int j = 0;j < total_servers;++j){
+			// 	for(int k = 0;k < total_apps;++k){
+			// 		if(app_dis[j][k])
+			// 			printf("1 ");
+			// 		else
+			// 			printf("0 ");
+			// 	}
+			// 	printf("\n");
+			// }
+
+			int z;
+			scanf("%d", &z);
 		}
 		fprintf( stderr, "[ROOT=%d] [APP=%d] [COST=%d] [SOL %d]\n", root, app, pre_cost, sol );
 		fprintf(stderr, "(power=%f) (thres=%d)\n", power, power_threshold);
 		fprintf(stderr, "--\n");
 	}
 	// clean up
-	showDistribution();
+	for(int i = 0;i < total_edges;++i){
+		pre_band[i].clear();
+		cur_band[i].clear();
+	}
+	for(int i = 0;i < total_servers;++i){
+		app_dis[i].clear();
+	}
+
+	pre_req.clear();
+	cur_req.clear();
+	for(int i = 0;i < total_servers;++i){
+		for(int j = 0;j < total_apps;++j){
+			if(!servers[i].getApp(j)){
+				for(int l = 0;l < time_window;++l){
+					apps[j].setNumRequests(i, l, -1);
+				}
+			}
+		}
+	}
+	// Fill up the candidates
+	for(int i = 0;i < total_servers;++i){
+		for(int j = 0;j < total_apps;++j){
+			int len = servers[i].getServing(j).size();
+			// printf("len:%d\n", len);
+			int n = 1;
+			bool visited[total_servers];
+			for(int k = 0;k < total_servers;++k)
+				visited[k] = false;
+			std::queue<int> q;
+			q.push(i);
+			visited[i] = true;
+			// BFS
+			while(!q.empty() && n < len){
+				int cur = q.front();
+				q.pop();
+				bool in_serving = false;
+				for(int k = 0;k < n;++k){
+					if(servers[i].getServing(j)[k] == cur){
+						in_serving = true;
+						break;
+					}
+				}
+				if(!in_serving && servers[cur].getApp(j)){
+					// fill in
+					servers[i].setServing(j, n, cur);
+					n++;
+				}
+				for(int k = 0;k < total_servers;++k){
+					if (servers[cur].getConnection(k) && !visited[k]){
+						visited[k] = true;
+						q.push(k);
+					}
+				}
+			}
+			for(int k = n;k < len;++k){
+				servers[i].setServing(j, k, -1);
+			}
+		}
+	}
+	// showDistribution();
 	// showApps();
+	showServers();
+
+	// for(int i = 0;i < total_servers;++i){
+	// 	printf("[SERVER %d]:\n", i);
+	// 	for(int j = 0;j < total_apps;++j){
+	// 		int l = servers[i].getServing(j).size();
+	// 		for(int k = 0;k < l;++k){
+	// 			printf("%d ", servers[i].getServing(j, k));
+	// 		}
+	// 		printf("\n");
+	// 	}
+	// 	printf("\n");
+	// }
+
+	// for(int i = 0;i < total_apps;++i){
+	// 	printf("app[%d]: ", i);
+	// 	for(int j = 0;j < total_servers;++j){
+	// 		for(int k = 0;k < time_window;++k){
+	// 			printf("%d ", apps[i].getNumRequests(j, k));
+	// 		}
+	// 		printf("\n");
+	// 	}
+	// 	printf("\n");
+	// }
 }
 
 bool Graph::feasibility( int app, int num, int root, int cur ) {
 	// check for server capacity, power threshold and (max_requests)
-	if(servers[cur].getApp(app)) // if current server is already exists replica 
-		                         // then no need to replicate one to replicate one
-		return true;
+	if(servers[cur].getApp(app)){ // if current server is already exists replica 
+		                          // then no need to replicate one to replicate one
+		int c = 0;
+		for(int i = 0;i < time_window;++i){
+			// printf("%d ", apps[app].getNumRequests(cur, i));
+			if(apps[app].getNumRequests(cur, i) > 0)
+				c++;
+		}
+		// 6/1 add the condition flow on remaining quota on VM
+		if(c >= time_window / 2)
+			return true;
+		else{
+			fprintf(stderr, "not enough quota (root=%d) (cur=%d)\n", root, cur);
+			int z;
+			scanf("%d", &z);
+			return false;
+		}
+	}
 	if ( (servers[cur].getUsedComp() + apps[ app ].getComp() <= servers[cur].getComp()) &&
 		 (servers[cur].getUsedStor() + apps[ app ].getStor() <= servers[cur].getStor())) {
 		double u = (double)( servers[cur].getUsedComp() + apps[ app ].getComp() ) / servers[cur].getComp();
@@ -692,10 +883,11 @@ Ans Graph::mcmf(_edges& E, int s, int t, std::vector< std::vector<int> >& pre_ba
 		// if(cur_time == time_window)
 		// 	printf("--\n");
 	}
+	// printf("==%d\n", _c);
 	return a;
 
 }
-int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int> >& pre_band) {
+int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int> >& pre_band, std::vector<int>& pre_req) {
 	// http://www.csie.ntnu.edu.tw/~u91029/Flow2.html
 	// feasibility: edge capacity
 	// minmum cost flow problem: https://en.wikipedia.org/wiki/Minimum-cost_flow_problem
@@ -709,12 +901,22 @@ int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int
 			for(int j = 0;j < time_window;++j)
 				pre_band[i][j] = edges[i].getRemainBand(j);
 		}
+		// printf("---");
+		for(int i = 0; i < time_window;++i){
+			// printf("%d ", distribution[i][s][app]);
+			if(pre_req[i] <= distribution[i][s][app])
+				pre_req[i] = 0; // 6/1
+			else
+				pre_req[i] -= distribution[i][s][app];
+		}
+
 		return 0;
 	}
 
 	// printf("s:%d t:%d\n", s, t);
 	for(int i = 0;i < time_window;++i){
 		_edges E(total_servers + 2);
+		// printf("%d ", distribution[i][s][app]);
 		for(int j = 0;j < total_edges;++j){
 			addDirectedEdge(E, edges[j].getSrcIndex(), edges[j].getDstIndex(), edges[j].getRemainBand(i), 1);
 			addDirectedEdge(E, edges[j].getDstIndex(), edges[j].getSrcIndex(), edges[j].getRemainBand(i), 1);
@@ -724,12 +926,18 @@ int Graph::costCal(int s, int t, int app, int size, std::vector< std::vector<int
 		addDirectedEdge(E, t, total_servers + 1, distribution[i][s][app] * size, 0);
 		Ans ans = mcmf(E, total_servers, total_servers + 1, pre_band, i);
 		if(ans.cap != distribution[i][s][app] * size){
+			// printf("s:%d t:%d size:%d cap:%d\n", s, t, distribution[i][s][app] * size, ans.cap);
 			CleanUp(E);
 			return INT_MAX;
 		}
-		total_cost += ans.cost;	
+		if(pre_req[i] <= ans.cap / size)
+			pre_req[i] = 0; // 6/1
+		else
+			pre_req[i] -= ans.cap / size;
+		total_cost += ans.cost;
 		CleanUp(E);
 	}
+	// printf("\n");
 	return total_cost;
 }
 
@@ -740,8 +948,9 @@ int Graph::costCalReplication(int t, int app, int size, std::vector< std::vector
  	for(int i = 0;i < total_edges;++i)
  		low_band.push_back(pre_band[i][time_window]);
 	for(int i = 0;i < total_servers;++i){
-		if(app_dis[i][app]){
+		if(app_dis[i][app] || servers[i].getApp(app)){
 			if(i == t){ // replica exists on the root
+				// printf("XDD\n");
 				cur_source = i;
 				return 0;
 			}
@@ -766,5 +975,9 @@ int Graph::costCalReplication(int t, int app, int size, std::vector< std::vector
 	for(int i = 0;i < total_edges;++i)
 		pre_band[i][time_window] = low_band[i];
 	cur_source = cur;
+	if(cur == INT_MAX){
+		fprintf(stderr, "app %d replication source not found\n", app);
+		return INT_MAX;
+	}
 	return lowest_cost;
 }
