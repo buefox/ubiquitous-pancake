@@ -303,15 +303,13 @@ int main(int args, char* argv[]){
 	// is_weighted:1 if the graph is weighted, 0 otherwise
 	// min_link, max_link: the minimum and the maximum of the weight
 
-
 	// arguments check
-	if(args < 10){
+	if(args < 11){
 		printf("usage ./inputGenerator time_window num_server num_link num_user num_apps is_weighted min_link max_link server_comp server_stor\n");
 		return -1;
 	}
 	
-	int time_window, num_server, num_link, num_user, num_apps, server_comp, server_stor;
-	int minw, maxw;
+	int time_window, num_server, num_link, num_user, num_apps, server_comp, server_stor, minw, maxw;
 	bool weighted = false;
 	
 	time_window = atoi(argv[1]);
@@ -320,13 +318,13 @@ int main(int args, char* argv[]){
 	num_user = atoi(argv[4]);
 	num_apps = atoi(argv[5]);
 	
+
 	weighted = ( atoi( argv[6] ) ? true : false );
 	minw = ( atoi( argv[6] ) ? atoi( argv[7] ) : 0 );
 	maxw = ( atoi( argv[6] ) ? atoi( argv[8] ) : 0 );
 	
 	server_comp = atoi(argv[9]);
 	server_stor = atoi(argv[10]);
-	// printf("!\n");
 	// check valid input of num_server and num_link
 	if(num_link < (num_server - 1)){
 		printf("%d %d\n", num_server, num_link);
@@ -339,8 +337,9 @@ int main(int args, char* argv[]){
 		return -1;
 	}
 	srand(time(NULL));
-
+	
+	
 	makeEdgeInput(time_window, num_server, num_link, num_user, num_apps, weighted, minw, maxw);
-	// printf("!!\n");
+	printf("!!\n");
 	makeServerInput(time_window, num_server, num_link, num_user, num_apps, false, server_comp, server_stor);
 }

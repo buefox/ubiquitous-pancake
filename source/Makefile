@@ -7,7 +7,8 @@ OBJECTS = $(patsubst %.cpp, $(OBJ_DIR)%.o, $(SOURCES)) #$(SOURCES:.cpp=.o)
 EXEC = main
 IN_GEN = inputGenerator
 
-ITER = 100
+ITER = 10
+THRESHOLD = 90
 
 IN_DIR = ../input/
 INPUTS = Applications.txt Users.txt Edges.txt Servers.txt
@@ -24,7 +25,7 @@ $(IN_GEN): $(IN_GEN).cpp
 	$(CC) $(CFLAGS) $< -o $@
 
 run: $(EXEC)
-	./$(EXEC) $(ITER) $(addprefix $(IN_DIR), $(INPUTS))
+	./$(EXEC) $(ITER) $(addprefix $(IN_DIR), $(INPUTS)) $(THRESHOLD)
 
 clean:
 	rm -rf $(OBJECTS) $(EXEC) $(IN_GEN) *~ .*~

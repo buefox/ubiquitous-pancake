@@ -72,6 +72,8 @@ class Graph {
 		void setPowerThreshold( int );
 		void setPower( double p=0 );
 		
+		void setIter( int );
+
 		void setTotalServers( int );
 		void setServer( int, Server );
 		
@@ -84,12 +86,12 @@ class Graph {
 		void setTotalApps( int );
 		void setApp( int, App );
 		
-		void readAll( const char *, const char *, const char *, const char * );
+		void readAll( const char *, const char *, const char *, const char *, int );
 		void readApps( const char * );
 		void readUsers( const char * );
-		void readGraph( const char *, const char * );
+		void readGraph( const char *, const char * ,int );
 		void readEdges( const char * );
-		void readServers( const char * );
+		void readServers( const char *, int );
 
 		void showAll();
 		void showGraph();
@@ -106,6 +108,9 @@ class Graph {
 		void genDistribution();
 		void showDistribution( int t=0 );
 		void cleanDistribution();
+
+		void run( int );
+
 		// algorithm
 		void reboot();
 		void algorithm( int );
@@ -116,7 +121,7 @@ class Graph {
 		
 		int costCal(int, int, int, int, std::vector< std::vector<int> >&,  std::vector<int>& );
 		int costCalReplication(int, int, int, std::vector< std::vector<bool> >&, std::vector< std::vector<int> >&, int& );
-		
+		void putcosts();
 	private:
 		int time_window;
 		int power_threshold;
@@ -135,6 +140,10 @@ class Graph {
 		std::vector<App> apps;
 		
 		std::vector< std::vector< std::vector<int> > > distribution; // servers * apps * time_window
+
+		int total_iteration;
+		std::vector<int> trans_cost;
+		std::vector<int> real_cost;
 };
 
 #endif
