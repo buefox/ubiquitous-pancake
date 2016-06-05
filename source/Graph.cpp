@@ -499,9 +499,9 @@ void Graph::run(int iter){
 						for(int j = 0;j < time_window;++j){
 							t += edges[i].getBandwidth() - edges[i].getRemainBand(j);
 						}
-					// }
-					// printf("ans:%d %d\n", ans.cost, ans.cap);
-					// printf("temp:%d\n", t);
+					}
+					printf("ans:%d %d\n", ans.cost, ans.cap);
+					printf("temp:%d\n", t);
 					// int z;
 					// scanf("%d", &z);
 					distribution[i][j][k] -= ans.cap / apps[k].getBand();
@@ -535,7 +535,9 @@ void Graph::run(int iter){
 		for(int j = 0;j < time_window;++j){
 			real_cost[iter] += edges[i].getBandwidth() - edges[i].getRemainBand(j);
 		}
-	}
+	}	
+	// int z;
+	// scanf("%d", &z);
 	// printf("[ITER %d] [COST %d]\n", iter, real_cost[iter]);
 
 }
@@ -894,7 +896,7 @@ void Graph::algorithm(int iter) {
 	// cal total trans cost
 	// showEdges();
 	for(int i = 0;i < total_edges;++i){
-		for(int j = 0;j <= time_window;++j){
+		for(int j = 0;j < time_window;++j){
 			trans_cost[iter] += edges[i].getBandwidth() - edges[i].getRemainBand(j);
 		}
 	}

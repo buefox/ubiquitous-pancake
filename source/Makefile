@@ -8,7 +8,7 @@ EXEC = main
 IN_GEN = inputGenerator
 
 ITER = 10
-THRESHOLD = 90
+THRESHOLD = 100
 
 IN_DIR = ../input/
 INPUTS = Applications.txt Users.txt Edges.txt Servers.txt
